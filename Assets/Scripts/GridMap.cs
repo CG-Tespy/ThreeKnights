@@ -89,9 +89,9 @@ public class GridMap : MonoBehaviour
 
 //  !!!		Having difficulty assigning to grid for unknown reasons???
 			normalgrid[x_index, i] = sortedList[i].GetInstanceID();
-			//mapgrid[x_index, i].obj = sortedList[i].GetInstanceID();
-			//mapgrid[x_index, i].x = x_index;
-			//mapgrid[x_index, i].y = i;
+			mapgrid[x_index, i].obj = sortedList[i].GetInstanceID();
+			mapgrid[x_index, i].x = x_index;
+			mapgrid[x_index, i].y = i;
 		}
 		
 		return expected;
