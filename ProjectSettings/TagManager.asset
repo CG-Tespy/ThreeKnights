@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - GameBoard
+  - TopRight
+  - BottomLeft
   layers:
   - Default
   - TransparentFX

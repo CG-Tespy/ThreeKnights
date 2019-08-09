@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 public class GridMap : MonoBehaviour
 {
@@ -64,11 +65,18 @@ public class GridMap : MonoBehaviour
 			}
 			
 			// Sorts list by distance from ray origin
-			allFound = SortNearestGameObjects(allFound, pos);
+			/*allFound = SortNearestGameObjects(allFound, pos);
 			
 			// Fills the map grid with the new sorted list obtained
-			FillColumn(allFound, i);
+			FillColumn(allFound, i);*/
+			
+			allFound = allFound.OrderBy(x => Vector2.Distance(pos,x.transform.position)).ToList();
+			for(int k = 0; k < allFound.Count; k++) {			
+				Debug.Log("obj" + k + "  =  " + allFound[k].name + " : " + allFound[k].GetInstanceID());
+			}
+
 		}
+		
 		return true;
 	}
 	
