@@ -6,6 +6,8 @@ public class TileType : ScriptableObject
 {
     [TextArea(3, 6)]
     [SerializeField] string description;
+    [Tooltip("Defines the aesthetic of the tile.")]
+    [SerializeField] Material material;
     [Tooltip("Base point value for when a match is made with tiles of this type.")]
     [SerializeField] int pointValue =                   10;
     [Tooltip("Any special effects tied to this particular type. May be better to just use Fungus for this...")]
@@ -14,6 +16,11 @@ public class TileType : ScriptableObject
     public virtual string Description
     {
         get { return description; }
+    }
+
+    public virtual Material Material
+    {
+        get                                             { return material; }
     }
 
     public virtual int PointValue

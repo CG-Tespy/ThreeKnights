@@ -2,7 +2,7 @@
 using Fungus;
 
 [EventHandlerInfo("Three Knights",
-                      "Match Made",
+                      "Swap Made",
                       "The block will execute when a tile swap is made.")]
     [AddComponentMenu("")]
 public class SwapMadeEvent : EventHandler
