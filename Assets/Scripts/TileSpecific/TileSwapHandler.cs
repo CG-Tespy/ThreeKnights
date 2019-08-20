@@ -7,7 +7,7 @@ public class TileSwapHandler : MonoBehaviour
 {
     [SerializeField] TileType airTileType;
     TileBoardController tileBoard;
-    TileController firstTileClicked, secondTileClicked;
+    public TileController firstTileClicked, secondTileClicked;
     TileSwapArgs swapResults =                      new TileSwapArgs();
     public static UnityAction<TileSwapHandler, TileSwapArgs> AnySwapMade =  delegate {};
     // ^ So custom code can respond to the swaps without having to be involved in a Fungus block.

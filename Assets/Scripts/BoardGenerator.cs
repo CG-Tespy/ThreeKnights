@@ -39,7 +39,7 @@ public class BoardGenerator : MonoBehaviour
 	public List<GridUnit> Tiles 			{ get { return tileSettings.tiles; } }
 	public GameObject backgroundTile 		{ get { return tileSettings.backgroundTile; } }
 
-	TileController[,] spawnedTiles;
+	public TileController[,] spawnedTiles;
 
 	// Best generate in Awake, before the board-controller is set to register the tiles
 	void Awake()
@@ -114,13 +114,13 @@ public class BoardGenerator : MonoBehaviour
 		{
 			for (int row = 0; row < numOfRows; row++) 
 			{
-				location.Set(column, row, 1);
+				location.Set(column, row, 0);
 				newTile = 						SpawnTileAt(location);
 				newTile.BoardPos.Set(column, row);
 				spawnedTiles[column, row] = 	newTile;
 				
 				if (backgroundTile != null) 
-					Instantiate(backgroundTile, location + Vector3.forward, Quaternion.identity, boardHolder);
+					Instantiate(backgroundTile, (Vector3)location * buildingFootprint + Vector3.forward, Quaternion.identity, boardHolder);
 				
 				if (!typesInColumn.Contains(newTile.Type)) 
 					// As we move through the rows, we're assessing the contents of one column.
@@ -151,14 +151,38 @@ public class BoardGenerator : MonoBehaviour
 		// Generate a random number to decide which tile should be spawned, to go with
 		// how each tile type has its own probability of being assigned to a tile
 		float randNum = 					Random.Range(0f, 100f) / 10f;
-		Vector3 worldPos = 					new Vector3(boardCoord.x * buildingFootprint, 
-											boardCoord.y * buildingFootprint, 
-											boardCoord.z * buildingFootprint);
+		Vector3 worldPos = 					(Vector3)boardCoord * buildingFootprint;
+		bool horizontalCheckPassed =		false;
+		bool verticalCheckPassed =			false;
+		
+		if (boardCoord.x < 2) {
+			horizontalCheckPassed = true;
+		} else if (spawnedTiles[boardCoord.x - 2, boardCoord.y].type 
+					!= spawnedTiles[boardCoord.x - 1, boardCoord.y].type) {
+			horizontalCheckPassed = true;
+		}
+		
+		if (boardCoord.y < 2) {
+			verticalCheckPassed = true;
+		} else if (spawnedTiles[boardCoord.x, boardCoord.y - 2].type 
+					!= spawnedTiles[boardCoord.x, boardCoord.y - 1].type) {
+			verticalCheckPassed = true;
+		}
 
 		foreach (GridUnit tile in Tiles)
 		{
 			if (randNum < tile.adjustedProbability)
 			{
+				if (!horizontalCheckPassed && 
+						(tile.type == spawnedTiles[boardCoord.x - 1, boardCoord.y].type)) {
+					continue;
+				}
+				
+				if (!verticalCheckPassed && 
+						(tile.type == spawnedTiles[boardCoord.x, boardCoord.y - 1].type)) {
+					continue;
+				}
+				
 				TileController newTile = 	Instantiate(tileSettings.baseTilePrefab, worldPos, 
 											Quaternion.identity, tileHolder);
 				newTile.Type = 				tile.type;
@@ -166,9 +190,11 @@ public class BoardGenerator : MonoBehaviour
 			}
 		}
 
-		return null; 
-		// ^ Couldn't find a tile to spawn. Must be an issue with the choice of random number,
-		// or the probability system.
+		// If end of the list is reached before tile is instantiated, spawns first tile in list
+		TileController newAltTile =	Instantiate(tileSettings.baseTilePrefab, worldPos, 
+									Quaternion.identity, tileHolder);
+		newAltTile.Type = 				Tiles[0].type;
+		return newAltTile;
 	}
 
 	void RandomlyChangeTileType(TileController tile)
@@ -253,7 +279,7 @@ public class BoardGenerator : MonoBehaviour
 
 				// Optionally add components or adjust scripts in objects here
 				if (backgroundTile != null) 
-					Instantiate(backgroundTile, pos + Vector3.forward, Quaternion.identity, boardHolder);
+					Instantiate(backgroundTile, pos * buildingFootprint + Vector3.forward, Quaternion.identity, boardHolder);
 				return;
 			}
 		}
