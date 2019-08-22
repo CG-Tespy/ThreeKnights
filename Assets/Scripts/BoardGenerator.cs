@@ -116,7 +116,7 @@ public class BoardGenerator : MonoBehaviour
 			{
 				location.Set(column, row, 0);
 				newTile = 						SpawnTileAt(location);
-				newTile.BoardPos.Set(column, row);
+				newTile.BoardPos = 				new Vector2Int(column, row);
 				spawnedTiles[column, row] = 	newTile;
 				
 				if (backgroundTile != null) 
@@ -155,10 +155,13 @@ public class BoardGenerator : MonoBehaviour
 		bool horizontalCheckPassed =		false;
 		bool verticalCheckPassed =			false;
 		
-		if (boardCoord.x < 2) {
+		if (boardCoord.x < 2) 
+		{
 			horizontalCheckPassed = true;
-		} else if (spawnedTiles[boardCoord.x - 2, boardCoord.y].type 
-					!= spawnedTiles[boardCoord.x - 1, boardCoord.y].type) {
+		} 
+		else if (spawnedTiles[boardCoord.x - 2, boardCoord.y].type 
+					!= spawnedTiles[boardCoord.x - 1, boardCoord.y].type) 
+					{
 			horizontalCheckPassed = true;
 		}
 		
@@ -266,31 +269,4 @@ public class BoardGenerator : MonoBehaviour
 		}
 	}
 
-	void HandleFirstFourTiles(float randomNumber, Vector3Int boardCoord, Vector3 pos)
-	{
-		Vector2Int boardCoord2D = 				new Vector2Int(boardCoord.x, boardCoord.y);
-
-		foreach (GridUnit tile in Tiles) 
-		{
-			if (randomNumber < tile.adjustedProbability) 
-			{
-				//CreateAndSetUpTile(tile.prefab, pos, Quaternion.identity, boardCoord2D);
-				CreateAndSetUpTile(tile.type, pos, Quaternion.identity, boardCoord2D);
-
-				// Optionally add components or adjust scripts in objects here
-				if (backgroundTile != null) 
-					Instantiate(backgroundTile, pos * buildingFootprint + Vector3.forward, Quaternion.identity, boardHolder);
-				return;
-			}
-		}
-	}
-
-
-	void CreateAndSetUpTile(TileType tileType, Vector3 position, Quaternion rotation, Vector2Int boardPos)
-	{
-		TileController newTile = 				Instantiate(tileSettings.baseTilePrefab, position, 
-												rotation, tileHolder);
-		newTile.Type = 							tileType;
-		newTile.BoardPos = 						boardPos;
-	}
 }
