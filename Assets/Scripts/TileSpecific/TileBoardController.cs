@@ -59,6 +59,7 @@ public class TileBoardController : MonoBehaviour
 
     void OnAnySwapMade(TileSwapHandler swapHandler, TileSwapArgs swapArgs)
     {
+        UpdateColumnsAndRows();
         UpdateMatchesOnBoard();
 
         // Whatever tiles make up a match should be turned into air tiles. So...
@@ -74,7 +75,6 @@ public class TileBoardController : MonoBehaviour
         List<TileController> tilesSwapped =         swapArgs.TilesInvolved;
 
     }
-
 
     bool ContainsAirTile(ICollection<TileController> tiles)
     {
@@ -94,24 +94,7 @@ public class TileBoardController : MonoBehaviour
     void RegisterTiles()
     {
         tiles.AddRange(tileHolder.GetComponentsInChildren<TileController>());
-
-        // Organize the tiles into rows and columns
-        for (int x = 0; x < boardGenerator.numOfColumns; x++)
-        {
-            List<TileController> tileColumn =       (from tile in Tiles
-                                                    where tile.BoardPos.x == x
-                                                    select tile).ToList();
-            tileColumns.Add(tileColumn);
-        }
-
-        for (int y = 0; y < boardGenerator.numOfRows; y++)
-        {
-            List<TileController> rowColumn =        (from tile in Tiles
-                                                    where tile.BoardPos.y == y
-                                                    select tile).ToList();
-            tileRows.Add(rowColumn);
-        }
-
+        UpdateColumnsAndRows();
     }
 
     #region Helpers
@@ -133,6 +116,31 @@ public class TileBoardController : MonoBehaviour
             tilesMatched.AddRange(MatchedTilesInList(column));
         }
 
+    }
+
+    /// <summary>
+    /// Sets the column and row lists based on the coordinates of the tiles
+    /// </summary>
+    void UpdateColumnsAndRows()
+    {
+        // Make sure the lists are sorted based on their coords
+        for (int x = 0; x < boardGenerator.numOfColumns; x++)
+        {
+            List<TileController> tileColumn =       (from tile in Tiles
+                                                    where tile.BoardPos.x == x
+                                                    orderby tile.BoardPos.y
+                                                    select tile).ToList();
+            tileColumns.Add(tileColumn);
+        }
+
+        for (int y = 0; y < boardGenerator.numOfRows; y++)
+        {
+            List<TileController> rowColumn =        (from tile in Tiles
+                                                    where tile.BoardPos.y == y
+                                                    orderby tile.BoardPos.x
+                                                    select tile).ToList();
+            tileRows.Add(rowColumn);
+        }
     }
 
     List<TileController> MatchedTilesInList(List<TileController> toCheck)
@@ -166,7 +174,12 @@ public class TileBoardController : MonoBehaviour
                     matchedTiles.AddRange(tileChain);
                     tileChain.Clear();
                     tileChain.Add(tile); // New start of a chain
-                } 
+                }
+                else
+                {
+                    tileChain.Clear();
+                    tileChain.Add(tile); // New start of a chain
+                }
 
             }
             else // Let this first tile be the start of a chain
