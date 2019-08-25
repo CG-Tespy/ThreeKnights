@@ -8,9 +8,14 @@ using UnityEngine;
 public class TileSwapArgs : System.EventArgs
 {
     protected List<TileController> tilesInvolved =          new List<TileController>();
-
+    protected TileSwapType swapType;
     public List<TileController> TilesInvolved
     {
-        get { return tilesInvolved; }
+        get                                                 { return tilesInvolved; }
+    }
+    public TileSwapType SwapType
+    {
+        get                                                 { return swapType; }
+        set                                                 { swapType = value; }
     }
 }
