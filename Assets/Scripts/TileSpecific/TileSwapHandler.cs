@@ -2,23 +2,51 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Fungus;
 
 public class TileSwapHandler : MonoBehaviour
 {
-    [SerializeField] TileType airTileType;
-    [Tooltip("How long, in second,  each swap should take.")]
-    [SerializeField] float swapDuration =           0.5f;
-    bool swapEnabled =                              true;
+    #region Fields
+    [Tooltip("Flowchart containing values multiple parts of the system use.")]
+    [SerializeField] Flowchart gameVals;
+    [Tooltip("Flowchart containing the primitive variable types this will need.")]
+    [SerializeField] Flowchart tileSwapVals;
+
+    #region Fungus vars from Flowcharts
+    ObjectVariable airTileVar;
+    
+    StringVariable cancelAxisVar;
+
+    FloatVariable swapDurationVar;
+    BooleanVariable swapEnabledVar;
+    #endregion
+
     TileBoardController tileBoard;
-    public TileController firstTileClicked, secondTileClicked;
+    TileController firstTileClicked, secondTileClicked;
     TileSwapArgs swapResults =                      new TileSwapArgs();
     public static UnityAction<TileSwapHandler, TileSwapArgs> AnySwapMade =  delegate {};
     // ^ So custom code can respond to the swaps without having to be involved in a Fungus block.
+    #endregion
+
+    #region Properties
+    TileType AirTileType                            { get { return airTileVar.Value as TileType; } }
+    string CancelAxis                               { get { return cancelAxisVar.Value; } }
+    float SwapDuration                              { get { return swapDurationVar.Value; } }
+    bool SwapEnabled                                
+    { 
+        get                                         { return swapEnabledVar.Value; } 
+        set                                         { swapEnabledVar.Value = value; }
+    }
+    #endregion
 
     void Awake()
     {
         tileBoard =                                 FindObjectOfType<TileBoardController>();
         TileController.AnyClicked +=                OnAnyTileClicked;
+        swapDurationVar =                           tileSwapVals.GetVariable("swapDuration") as FloatVariable;
+        swapEnabledVar =                            tileSwapVals.GetVariable("swapEnabled") as BooleanVariable;
+        cancelAxisVar =                             tileSwapVals.GetVariable("cancelAxis") as StringVariable;
+        airTileVar =                                gameVals.GetVariable("airTileType") as ObjectVariable;
     }
 
     void OnDestroy()
@@ -27,9 +55,16 @@ public class TileSwapHandler : MonoBehaviour
         TileController.AnyClicked -=                OnAnyTileClicked;
     }
 
+    void Update()
+    {
+        // Let the player cancel their selection
+        if (Input.GetAxis(CancelAxis) != 0 && SwapEnabled)
+            UnregisterTileClicks();
+    }
+
     void OnAnyTileClicked(TileController tile)
     {
-        if (!swapEnabled)
+        if (!SwapEnabled)
             return;
         if (firstTileClicked == null)
             firstTileClicked =                      tile;
@@ -42,12 +77,11 @@ public class TileSwapHandler : MonoBehaviour
 
             if (swapType != TileSwapType.none) // We have a valid swap attempt here!
             {
-                swapEnabled =                       false; // Will be reenabled once the swap is done
+                SwapEnabled =                       false; // Will be reenabled once the swap is done
                 StartCoroutine(SwapCoroutine(firstTileClicked, secondTileClicked, swapType));
-
             }
-
-            UnregisterTileClicks();
+            else
+                UnregisterTileClicks();
         }
 
     }
@@ -60,8 +94,10 @@ public class TileSwapHandler : MonoBehaviour
         {
             case TileSwapType.adjacent:
                 yield return AdjacentSwapCoroutine(firstTile, secondTile);
-                UpdateSwapResults(swapType);
                 break;
+            case TileSwapType.freeAdjacent:
+                yield return AdjacentSwapCoroutine(firstTile, secondTile);
+                break; 
             case TileSwapType.knight:
                 yield return KnightSwapCoroutine(firstTile, secondTile);
                 break;
@@ -70,7 +106,10 @@ public class TileSwapHandler : MonoBehaviour
                 break;
         }
 
-        swapEnabled =                               true;
+        UpdateSwapResults(swapType);
+        UnregisterTileClicks();
+        AlertSwapListeners();
+        SwapEnabled =                         true;
 
     }
 
@@ -104,10 +143,6 @@ public class TileSwapHandler : MonoBehaviour
             travelVec.y -=                      xOffset;
         }
 
-        // Alert listeners, be it Fungus blocks or custom code.
-        AnySwapMade.Invoke(this, swapResults);
-        SwapMadeEvent.Invoke(swapResults);
-
     }
 
     IEnumerator AdjacentSwapCoroutine(TileController firstTile, TileController secondTile)
@@ -119,13 +154,13 @@ public class TileSwapHandler : MonoBehaviour
 
         float swapTimer =                           0f;
 
-        while (swapTimer < swapDuration)
+        while (swapTimer < SwapDuration)
         {
             swapTimer +=                            Time.deltaTime;
             firstTile.transform.position =          Vector3.Lerp(firstPos, secondPos, 
-                                                    swapTimer / swapDuration);
+                                                    swapTimer / SwapDuration);
             secondTile.transform.position =         Vector3.Lerp(secondPos, firstPos, 
-                                                    swapTimer / swapDuration);
+                                                    swapTimer / SwapDuration);
             yield return new WaitForFixedUpdate();
         }
 
@@ -133,14 +168,8 @@ public class TileSwapHandler : MonoBehaviour
         firstTile.BoardPos =                        secondTile.BoardPos;
         secondTile.BoardPos =                       firstBoardPos;
 
-        // Alert listeners, be it Fungus blocks or custom code.
-        AnySwapMade.Invoke(this, swapResults);
-        SwapMadeEvent.Invoke(swapResults);
-
-
     }
 
-    
     void UnregisterTileClicks()
     {
         firstTileClicked =                          null;
@@ -158,7 +187,7 @@ public class TileSwapHandler : MonoBehaviour
         bool horizSwap =                            tile1.BoardPos.x != tile2.BoardPos.x;
         if (horizSwap)
         {
-            if (tile1.Type == airTileType || tile2.Type == airTileType)
+            if (tile1.Type == AirTileType || tile2.Type == AirTileType)
                 return TileSwapType.none;
         }
 
@@ -180,7 +209,7 @@ public class TileSwapHandler : MonoBehaviour
                 lowerTile =                         tile1;
             }
 
-            if (higherTile.Type == airTileType)
+            if (higherTile.Type == AirTileType)
                 return TileSwapType.none;
 
         }
@@ -196,8 +225,8 @@ public class TileSwapHandler : MonoBehaviour
                                                     (tileDist.y == 1 && tileDist.x == 0);
         bool knightSwap =                           (tileDist.x == 2 && tileDist.y == 1) || 
                                                     (tileDist.y == 2 && tileDist.x == 1);
-        bool airTileInvolved =                      firstTileClicked.type == airTileType || 
-                                                    secondTileClicked.type == airTileType;
+        bool airTileInvolved =                      firstTileClicked.type == AirTileType || 
+                                                    secondTileClicked.type == AirTileType;
         if (adjacentSwap && airTileInvolved)
             return TileSwapType.freeAdjacent;
         else if (adjacentSwap)
@@ -217,6 +246,12 @@ public class TileSwapHandler : MonoBehaviour
         tiles.Add(secondTileClicked);
     }
 
+    void AlertSwapListeners()
+    {
+        // Whether it's Fungus blocks or custom code.
+        AnySwapMade.Invoke(this, swapResults);
+        SwapMadeEvent.Invoke(swapResults);
+    }
     #endregion
     
 }

@@ -37,19 +37,7 @@ public class TileController : MonoBehaviour
     {
         renderer =                                          GetComponent<Renderer>();
         if (type != null && type.Material != null)
-            renderer.material =                                 type.Material;
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+            renderer.material =                             type.Material;
     }
 
     protected virtual void OnMouseDown()

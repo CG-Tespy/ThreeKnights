@@ -1,15 +1,19 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using Fungus;
 
 /// <summary>
 /// Controls the tile board.
 /// </summary>
 public class TileBoardController : MonoBehaviour
 {
+    [Tooltip("Flowchart that contains values pertaining to the tile board.")]
+    [SerializeField] Flowchart tileBoardVals;
     [SerializeField] TileType airTileType;
     [SerializeField] protected Transform tileHolder;
-    [SerializeField] protected int minAmountForMatch = 3;
+
+    IntegerVariable minAmountForMatch;
     [SerializeField] BoardGenerator boardGenerator;
     List<TileController> tiles =                        new List<TileController>();
 
@@ -28,6 +32,8 @@ public class TileBoardController : MonoBehaviour
     void Awake()
     {
         TileSwapHandler.AnySwapMade +=                  OnAnySwapMade;
+        minAmountForMatch =                             tileBoardVals.GetVariable("minAmountForMatch") 
+                                                        as IntegerVariable;
     }
 
     void Start()
@@ -76,21 +82,6 @@ public class TileBoardController : MonoBehaviour
 
     }
 
-    bool ContainsAirTile(ICollection<TileController> tiles)
-    {
-        foreach (TileController tile in tiles)
-            if (tile.Type == airTileType)
-                return true;
-
-        return false;
-    }
-
-    void TurnIntoAirTiles(ICollection<TileController> tiles)
-    {
-        foreach (TileController tile in tiles)
-            tile.Type =                             airTileType;
-    }
-
     void RegisterTiles()
     {
         tiles.AddRange(tileHolder.GetComponentsInChildren<TileController>());
@@ -123,6 +114,9 @@ public class TileBoardController : MonoBehaviour
     /// </summary>
     void UpdateColumnsAndRows()
     {
+        tileColumns.Clear();
+        tileRows.Clear();
+
         // Make sure the lists are sorted based on their coords
         for (int x = 0; x < boardGenerator.numOfColumns; x++)
         {
@@ -145,42 +139,42 @@ public class TileBoardController : MonoBehaviour
 
     List<TileController> MatchedTilesInList(List<TileController> toCheck)
     {
-        // TODO: Fix what's getting the wrong tiles returned
         List<TileController> matchedTiles =         new List<TileController>();
         List<TileController> tileChain =            new List<TileController>();
+        bool enoughForMatch =                       false;
 
         for (int i = 0; i < toCheck.Count; i++)
         {
-            TileController tile =               toCheck[i];
-            TileController previousTile =       null;
+            TileController tile =                   toCheck[i];
+            TileController previousTile =           null;
 
-            bool thereIsPreviousTile =          i > 0;
+            bool thereIsPreviousTile =              i > 0;
 
             if (thereIsPreviousTile)
             {
-                previousTile =                  toCheck[i - 1];
+                previousTile =                      toCheck[i - 1];
 
                 // Air tiles don't count in matches.
-                bool bothTilesChain =           tile.type != airTileType && tile.type == previousTile.type;
+                bool bothTilesChain =               tile.type != airTileType && tile.type == previousTile.type;
+                enoughForMatch =                    tileChain.Count >= minAmountForMatch.Value;
 
                 if (bothTilesChain)
                 {
                     tileChain.Add(tile);
                 }
-                else if (tileChain.Count >= minAmountForMatch)
-                {
-                    // We have enough in our chain to count as a match. Register it, then reset it for
-                    // the next chain-checking iteration.
-                    matchedTiles.AddRange(tileChain);
-                    tileChain.Clear();
-                    tileChain.Add(tile); // New start of a chain
-                }
                 else
                 {
+                    if (enoughForMatch)
+                    {
+                        // Register the match
+                        matchedTiles.AddRange(tileChain);
+                    }
+
+                    // Reset our chain, having it start with the latest tile
                     tileChain.Clear();
                     tileChain.Add(tile); // New start of a chain
                 }
-
+                
             }
             else // Let this first tile be the start of a chain
             {
@@ -188,6 +182,9 @@ public class TileBoardController : MonoBehaviour
             }
 
         }
+
+        if (tileChain.Count >= minAmountForMatch.Value)
+            matchedTiles.AddRange(tileChain);
         
         return matchedTiles;
     }
