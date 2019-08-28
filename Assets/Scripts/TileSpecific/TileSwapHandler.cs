@@ -225,8 +225,8 @@ public class TileSwapHandler : MonoBehaviour
                                                     (tileDist.y == 1 && tileDist.x == 0);
         bool knightSwap =                           (tileDist.x == 2 && tileDist.y == 1) || 
                                                     (tileDist.y == 2 && tileDist.x == 1);
-        bool airTileInvolved =                      firstTileClicked.type == AirTileType || 
-                                                    secondTileClicked.type == AirTileType;
+        bool airTileInvolved =                      firstTileClicked.Type == AirTileType || 
+                                                    secondTileClicked.Type == AirTileType;
         if (adjacentSwap && airTileInvolved)
             return TileSwapType.freeAdjacent;
         else if (adjacentSwap)

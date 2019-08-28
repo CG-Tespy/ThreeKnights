@@ -4,7 +4,7 @@ using System.Linq;
 using Fungus;
 
 /// <summary>
-/// Controls the tile board.
+/// Controls the tile board, managing various aspects of it.
 /// </summary>
 public class TileBoardController : MonoBehaviour
 {
@@ -15,6 +15,7 @@ public class TileBoardController : MonoBehaviour
 
     IntegerVariable minAmountForMatch;
     [SerializeField] BoardGenerator boardGenerator;
+    #region Tiles
     List<TileController> tiles =                        new List<TileController>();
 
     public List<TileController> Tiles
@@ -24,7 +25,12 @@ public class TileBoardController : MonoBehaviour
 
     List<List<TileController>> tileRows =               new List<List<TileController>>();
     List<List<TileController>> tileColumns =            new List<List<TileController>>();
+    #endregion
+
+    #region For event listeners
     MatchArgs matchesOnBoard =                          new MatchArgs();
+    TileClearArgs tileClearReport =                     new TileClearArgs();
+    #endregion
     
     public int RowCount                                 { get { return tileRows.Count; } }
     public int ColumnCount                              { get { return tileColumns.Count; } }
@@ -62,16 +68,20 @@ public class TileBoardController : MonoBehaviour
     {
         return GetTileAt(new Vector2Int(xPosition, yPosition));
     }
-
+    
     void OnAnySwapMade(TileSwapHandler swapHandler, TileSwapArgs swapArgs)
     {
         UpdateColumnsAndRows();
         UpdateMatchesOnBoard();
 
-        // Whatever tiles make up a match should be turned into air tiles. So...
+        // Whatever tiles make up a match should be turned into air tiles. So do that,
+        // while alerting listeners of it.
         foreach (TileController tile in matchesOnBoard.TilesMatched)
         {
+            tileClearReport.TileCleared =           tile;
+            tileClearReport.OriginalTileType =      tile.Type;
             tile.Type =                             airTileType;
+            TileClearedEvent.Invoke(tileClearReport);
         }
 
         // With the matched tiles now aired up, their matches don't count
@@ -79,7 +89,6 @@ public class TileBoardController : MonoBehaviour
         matchesOnBoard.TilesMatched.Clear();
 
         List<TileController> tilesSwapped =         swapArgs.TilesInvolved;
-
     }
 
     void RegisterTiles()
@@ -155,7 +164,7 @@ public class TileBoardController : MonoBehaviour
                 previousTile =                      toCheck[i - 1];
 
                 // Air tiles don't count in matches.
-                bool bothTilesChain =               tile.type != airTileType && tile.type == previousTile.type;
+                bool bothTilesChain =               tile.Type != airTileType && tile.Type == previousTile.Type;
                 enoughForMatch =                    tileChain.Count >= minAmountForMatch.Value;
 
                 if (bothTilesChain)
