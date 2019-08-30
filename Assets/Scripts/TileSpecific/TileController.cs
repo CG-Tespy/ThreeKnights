@@ -4,7 +4,7 @@ using UnityEngine.Events;
 
 public class TileController : MonoBehaviour
 {
-    [SerializeField] public TileType type;
+    [SerializeField] TileType type;
     [SerializeField] Vector2Int boardPos;
     public UnityAction Clicked =                            delegate {};
     new protected Renderer renderer;

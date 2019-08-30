@@ -16,12 +16,17 @@ public class BoardGenerator : MonoBehaviour
 	[System.Serializable]
 	public class GridUnit 
 	{
-		public TileType type;
+		[SerializeField] TileType type;
 		[SerializeField]
 		[Range(0,1)] 
 		public float probability = 			1.0f;
 		//[HideInInspector]
 		public float adjustedProbability;
+
+		public TileType Type
+		{
+			get { return type; }
+		}
 	}
 	
 	public TileSettings tileSettings;
@@ -31,6 +36,7 @@ public class BoardGenerator : MonoBehaviour
 	public int numOfRows = 					8;
 	public int numOfColumns = 				8;
 	public float buildingFootprint = 		10f;
+	float adjustedBFootprint; // building foor print adjusted for the board holder's scale.
 	
 	// Contains random numbers for each grid coordinate, deciding which tiles are spawned where.
 	private float[,] mapGrid;
@@ -53,6 +59,8 @@ public class BoardGenerator : MonoBehaviour
 			tileHolder = 					this.transform;
 		if (boardHolder == null)
 			boardHolder = 					this.transform;
+
+		adjustedBFootprint = 				(boardHolder.localScale.x + boardHolder.localScale.y) / 2f;
 		
 		// SetupRandomTileNumbers(); Better to have the numbers generated as they're needed
 		
@@ -119,8 +127,8 @@ public class BoardGenerator : MonoBehaviour
 				newTile.BoardPos = 				new Vector2Int(column, row);
 				spawnedTiles[column, row] = 	newTile;
 				
-				if (backgroundTile != null) 
-					Instantiate(backgroundTile, (Vector3)location * buildingFootprint + Vector3.forward, Quaternion.identity, boardHolder);
+				if (backgroundTile != null)
+					SpawnBackgroundTile(location);
 				
 				if (!typesInColumn.Contains(newTile.Type)) 
 					// As we move through the rows, we're assessing the contents of one column.
@@ -151,7 +159,8 @@ public class BoardGenerator : MonoBehaviour
 		// Generate a random number to decide which tile should be spawned, to go with
 		// how each tile type has its own probability of being assigned to a tile
 		float randNum = 					Random.Range(0f, 100f) / 10f;
-		Vector3 worldPos = 					(Vector3)boardCoord * buildingFootprint;
+		Vector3 localPos = 					(Vector3)boardCoord * adjustedBFootprint;
+		Vector3 worldPos = 					boardHolder.TransformPoint(localPos);
 		bool horizontalCheckPassed =		false;
 		bool verticalCheckPassed =			false;
 		
@@ -159,16 +168,16 @@ public class BoardGenerator : MonoBehaviour
 		{
 			horizontalCheckPassed = true;
 		} 
-		else if (spawnedTiles[boardCoord.x - 2, boardCoord.y].type 
-					!= spawnedTiles[boardCoord.x - 1, boardCoord.y].type) 
+		else if (spawnedTiles[boardCoord.x - 2, boardCoord.y].Type 
+					!= spawnedTiles[boardCoord.x - 1, boardCoord.y].Type) 
 					{
 			horizontalCheckPassed = true;
 		}
 		
 		if (boardCoord.y < 2) {
 			verticalCheckPassed = true;
-		} else if (spawnedTiles[boardCoord.x, boardCoord.y - 2].type 
-					!= spawnedTiles[boardCoord.x, boardCoord.y - 1].type) {
+		} else if (spawnedTiles[boardCoord.x, boardCoord.y - 2].Type 
+					!= spawnedTiles[boardCoord.x, boardCoord.y - 1].Type) {
 			verticalCheckPassed = true;
 		}
 
@@ -177,18 +186,20 @@ public class BoardGenerator : MonoBehaviour
 			if (randNum < tile.adjustedProbability)
 			{
 				if (!horizontalCheckPassed && 
-						(tile.type == spawnedTiles[boardCoord.x - 1, boardCoord.y].type)) {
+						(tile.Type == spawnedTiles[boardCoord.x - 1, boardCoord.y].Type)) {
 					continue;
 				}
 				
 				if (!verticalCheckPassed && 
-						(tile.type == spawnedTiles[boardCoord.x, boardCoord.y - 1].type)) {
+						(tile.Type == spawnedTiles[boardCoord.x, boardCoord.y - 1].Type)) {
 					continue;
 				}
 				
 				TileController newTile = 	Instantiate(tileSettings.baseTilePrefab, worldPos, 
 											Quaternion.identity, tileHolder);
-				newTile.Type = 				tile.type;
+				newTile.Type = 				tile.Type;
+				// Adjust pos to local pos
+				
 				return newTile;
 			}
 		}
@@ -196,8 +207,15 @@ public class BoardGenerator : MonoBehaviour
 		// If end of the list is reached before tile is instantiated, spawns first tile in list
 		TileController newAltTile =	Instantiate(tileSettings.baseTilePrefab, worldPos, 
 									Quaternion.identity, tileHolder);
-		newAltTile.Type = 				Tiles[0].type;
+		newAltTile.Type = 				Tiles[0].Type;
 		return newAltTile;
+	}
+
+	void SpawnBackgroundTile(Vector3Int boardCoord)
+	{
+		Vector3 localPos = 					(Vector3)boardCoord * adjustedBFootprint + Vector3.forward;
+		Vector3 worldPos = 					boardHolder.TransformPoint(localPos);
+		Instantiate(backgroundTile, worldPos, Quaternion.identity, boardHolder);
 	}
 
 	void RandomlyChangeTileType(TileController tile)
@@ -262,10 +280,10 @@ public class BoardGenerator : MonoBehaviour
 	{
 		foreach (GridUnit tile in Tiles)
 		{
-			if (tileTypes.Contains(tile.type))
+			if (tileTypes.Contains(tile.Type))
 				continue;
 			
-			tileTypes.Add(tile.type);
+			tileTypes.Add(tile.Type);
 		}
 	}
 
