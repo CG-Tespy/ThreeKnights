@@ -19,7 +19,6 @@ public class TileSwapHandler : MonoBehaviour
 
     FloatVariable swapDurationVar;
     BooleanVariable swapEnabledVar;
-    BooleanVariable lastSwapFreeVar;
     #endregion
 
     TileBoardController tileBoard;
@@ -27,8 +26,6 @@ public class TileSwapHandler : MonoBehaviour
     TileSwapArgs swapResults =                      new TileSwapArgs();
     public static UnityAction<TileSwapHandler, TileSwapArgs> AnySwapMade =  delegate {};
     // ^ So custom code can respond to the swaps without having to be involved in a Fungus block.
-
-    
     #endregion
 
     #region Properties
@@ -40,11 +37,6 @@ public class TileSwapHandler : MonoBehaviour
         get                                         { return swapEnabledVar.Value; } 
         set                                         { swapEnabledVar.Value = value; }
     }
-    bool LastSwapFree
-    {
-        get                                         { return lastSwapFreeVar.Value; }
-        set                                         { lastSwapFreeVar.Value = value; }
-    }
     #endregion
 
     void Awake()
@@ -55,7 +47,6 @@ public class TileSwapHandler : MonoBehaviour
         swapEnabledVar =                            tileSwapVals.GetVariable("swapEnabled") as BooleanVariable;
         cancelAxisVar =                             tileSwapVals.GetVariable("cancelAxis") as StringVariable;
         airTileVar =                                gameVals.GetVariable("airTileType") as ObjectVariable;
-        lastSwapFreeVar =                           tileSwapVals.GetVariable("lastSwapFree") as BooleanVariable;
     }
 
     void OnDestroy()
@@ -87,7 +78,6 @@ public class TileSwapHandler : MonoBehaviour
             if (swapType != TileSwapType.none) // We have a valid swap attempt here!
             {
                 SwapEnabled =                       false; // Will be reenabled once the swap is done
-                LastSwapFree =                      swapType == TileSwapType.freeAdjacent;
                 StartCoroutine(SwapCoroutine(firstTileClicked, secondTileClicked, swapType));
             }
             else

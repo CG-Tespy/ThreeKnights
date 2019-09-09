@@ -422,9 +422,6 @@ GameObject:
   - component: {fileID: 299071644}
   - component: {fileID: 299071643}
   - component: {fileID: 299071642}
-  - component: {fileID: 299071647}
-  - component: {fileID: 299071646}
-  - component: {fileID: 299071645}
   m_Layer: 0
   m_Name: SystemHandler
   m_TagString: Untagged
@@ -462,7 +459,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   itemId: 9
-  indentLevel: 1
+  indentLevel: 0
   variable: {fileID: 223926533}
   setOperator: 3
   booleanData:
@@ -703,10 +700,7 @@ MonoBehaviour:
   description: 
   eventHandler: {fileID: 299071623}
   commandList:
-  - {fileID: 299071645}
-  - {fileID: 299071647}
   - {fileID: 299071622}
-  - {fileID: 299071646}
 --- !u!114 &299071631
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -732,8 +726,9 @@ MonoBehaviour:
     width: 1114
     height: 859
   selectedBlocks:
-  - {fileID: 299071635}
-  selectedCommands: []
+  - {fileID: 299071644}
+  selectedCommands:
+  - {fileID: 299071642}
   variables: []
   description: Handles some parts of the system's execution.
   stepPause: 0
@@ -1008,7 +1003,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nodeRect:
     serializedVersion: 2
-    x: 789
+    x: 709
     y: 230
     width: 153
     height: 40
@@ -1022,7 +1017,7 @@ MonoBehaviour:
   - {fileID: 299071639}
 --- !u!114 &299071642
 MonoBehaviour:
-  m_ObjectHideFlags: 2
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -1036,7 +1031,7 @@ MonoBehaviour:
   indentLevel: 0
 --- !u!114 &299071643
 MonoBehaviour:
-  m_ObjectHideFlags: 2
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -1062,8 +1057,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nodeRect:
     serializedVersion: 2
-    x: 562
-    y: 229
+    x: 495
+    y: 232
     width: 142
     height: 40
   tint: {r: 1, g: 1, b: 1, a: 1}
@@ -1074,100 +1069,6 @@ MonoBehaviour:
   eventHandler: {fileID: 299071643}
   commandList:
   - {fileID: 299071642}
---- !u!114 &299071645
-MonoBehaviour:
-  m_ObjectHideFlags: 2
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 299071620}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea6e8f632db87477eb750446b28d73a3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  itemId: 21
-  indentLevel: 0
-  commenterName: 
-  commentText: Free swaps don't detract from the counter
---- !u!114 &299071646
-MonoBehaviour:
-  m_ObjectHideFlags: 2
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 299071620}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 93cb9773f2ca04e2bbf7a68ccfc23267, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  itemId: 20
-  indentLevel: 0
---- !u!114 &299071647
-MonoBehaviour:
-  m_ObjectHideFlags: 2
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 299071620}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 70c5622b8a80845c980954170295f292, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  itemId: 19
-  indentLevel: 0
-  compareOperator: 0
-  variable: {fileID: 883268548}
-  booleanData:
-    booleanRef: {fileID: 0}
-    booleanVal: 0
-  integerData:
-    integerRef: {fileID: 0}
-    integerVal: 0
-  floatData:
-    floatRef: {fileID: 0}
-    floatVal: 0
-  stringData:
-    stringRef: {fileID: 0}
-    stringVal: 
-  animatorData:
-    animatorRef: {fileID: 0}
-    animatorVal: {fileID: 0}
-  audioSourceData:
-    audioSourceRef: {fileID: 0}
-    audioSourceVal: {fileID: 0}
-  colorData:
-    colorRef: {fileID: 0}
-    colorVal: {r: 0, g: 0, b: 0, a: 0}
-  gameObjectData:
-    gameObjectRef: {fileID: 0}
-    gameObjectVal: {fileID: 0}
-  materialData:
-    materialRef: {fileID: 0}
-    materialVal: {fileID: 0}
-  objectData:
-    objectRef: {fileID: 0}
-    objectVal: {fileID: 0}
-  rigidbody2DData:
-    rigidbody2DRef: {fileID: 0}
-    rigidbody2DVal: {fileID: 0}
-  spriteData:
-    spriteRef: {fileID: 0}
-    spriteVal: {fileID: 0}
-  textureData:
-    textureRef: {fileID: 0}
-    textureVal: {fileID: 0}
-  transformData:
-    transformRef: {fileID: 0}
-    transformVal: {fileID: 0}
-  vector2Data:
-    vector2Ref: {fileID: 0}
-    vector2Val: {x: 0, y: 0}
-  vector3Data:
-    vector3Ref: {fileID: 0}
-    vector3Val: {x: 0, y: 0, z: 0}
 --- !u!1 &346749060
 GameObject:
   m_ObjectHideFlags: 0
@@ -1679,7 +1580,6 @@ GameObject:
   - component: {fileID: 883268546}
   - component: {fileID: 883268545}
   - component: {fileID: 883268547}
-  - component: {fileID: 883268548}
   m_Layer: 0
   m_Name: TileSwapVals
   m_TagString: Untagged
@@ -1742,7 +1642,6 @@ MonoBehaviour:
   - {fileID: 883268546}
   - {fileID: 883268545}
   - {fileID: 883268547}
-  - {fileID: 883268548}
   description: Contains values the tile swap handler will need
   stepPause: 0
   colorCommands: 1
@@ -1812,21 +1711,6 @@ MonoBehaviour:
   scope: 1
   key: cancelAxis
   value: Cancel
---- !u!114 &883268548
-MonoBehaviour:
-  m_ObjectHideFlags: 2
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 883268541}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d02d9822eec54c98afe95bb497211b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  scope: 1
-  key: lastSwapFree
-  value: 0
 --- !u!1 &929946562
 GameObject:
   m_ObjectHideFlags: 0
@@ -2612,7 +2496,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61dddfdc5e0e44ca298d8f46f7f5a915, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  selectedFlowchart: {fileID: 1840156610}
+  selectedFlowchart: {fileID: 299071631}
 --- !u!4 &1520540803
 Transform:
   m_ObjectHideFlags: 1
@@ -3464,7 +3348,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nodeRect:
     serializedVersion: 2
-    x: 345
+    x: 337
     y: 149
     width: 205
     height: 40
@@ -3503,8 +3387,9 @@ MonoBehaviour:
     width: 1114
     height: 859
   selectedBlocks:
-  - {fileID: 1944982490}
-  selectedCommands: []
+  - {fileID: 1944982477}
+  selectedCommands:
+  - {fileID: 1944982487}
   variables:
   - {fileID: 1944982483}
   - {fileID: 1944982491}
@@ -3515,7 +3400,7 @@ MonoBehaviour:
   hideComponents: 1
   saveSelection: 1
   localizationId: 
-  showLineNumbers: 1
+  showLineNumbers: 0
   hideCommands: []
   luaEnvironment: {fileID: 0}
   luaBindingName: flowchart
@@ -3843,7 +3728,7 @@ MonoBehaviour:
   nodeRect:
     serializedVersion: 2
     x: 56
-    y: 99
+    y: 90
     width: 156
     height: 40
   tint: {r: 1, g: 1, b: 1, a: 1}

@@ -16,4 +16,4 @@ MonoBehaviour:
   material: {fileID: 2100000, guid: 63c7b4a0de030824c800a9698a0f3ca7, type: 2}
   pointValue: 10
   effects:
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 11b8d8ee6e3ebc2449c31210b2af87c0, type: 2}
