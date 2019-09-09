@@ -36,23 +36,34 @@ public class BoardGenerator : MonoBehaviour
 	public int numOfRows = 					8;
 	public int numOfColumns = 				8;
 	public float buildingFootprint = 		10f;
-	float adjustedBFootprint; // building foor print adjusted for the board holder's scale.
+	private float adjustedBFootprint; // building foor print adjusted for the board holder's scale.
 	
-	// Contains random numbers for each grid coordinate, deciding which tiles are spawned where.
-	private float[,] mapGrid;
+	// Incorporate fungus value in this variable as an pre-processing directive
+	// #ifdef Fungus exists, use TileBoardVals.minAmountForMatch - 1 #else maxInLine = 2;
+	public int maxInLine = 				2;
+	
+	// Contains information for each grid coordinate, such as the tile type.
+	public TileController[,] spawnedTiles;
+	
 	private bool debug = 					true;
 	List<TileType> tileTypes = 				new List<TileType>();
 	public List<GridUnit> Tiles 			{ get { return tileSettings.tiles; } }
 	public GameObject backgroundTile 		{ get { return tileSettings.backgroundTile; } }
+	private enum Direction:int { Left, Down, Right, Up, All };
 
-	public TileController[,] spawnedTiles;
 
 	// Best generate in Awake, before the board-controller is set to register the tiles
-	void Awake()
+	void Awake() {
+		StartGeneration();
+	}
+
+	//void Update() {	/* Debug */	if (true) { string thing = null; } }
+
+	bool StartGeneration() 
 	{
 		// Quits if board dimensions are zero, or if there are no tiles set to populate it with
 		if (numOfRows < 1 || numOfColumns < 1 || Tiles.Count < 1)
-			return;
+			return false;
 		
 		// Assigns parent to this object if not chosen
 		if (tileHolder == null)
@@ -62,28 +73,20 @@ public class BoardGenerator : MonoBehaviour
 
 		adjustedBFootprint = 				(boardHolder.localScale.x + boardHolder.localScale.y) / 2f;
 		
-		// SetupRandomTileNumbers(); Better to have the numbers generated as they're needed
-		
 		// Generates probability range for each tile
 		FixProbability();
 
+		// Checks for duplicate tile types
 		RegisterTileTypes();
 
 		spawnedTiles = 						new TileController[numOfColumns, numOfRows];
 		GenerateBoard();
+		
+		//ReduceTileRedundancy(4);
+		
+		return true;
 	}
-
-	void Update()
-	{
-		// Debug
-		/*
-		if (true)
-		{
-			string thing = null;
-		}
-		*/
-	}
-
+	
 	// Adjusts probability of each block's rng spawn, affecting the prefab a block is spawned with
 	private void FixProbability() 
 	{
@@ -103,19 +106,13 @@ public class BoardGenerator : MonoBehaviour
 		{
 			pass = 							tile.adjustedProbability = pass + tile.probability * ratio;
 		}
-
 	}
 	
 	void GenerateBoard()
 	{
-		// TODO: Fix whatever isn't making the algorithm work quite right
-		
 		// Spawn all the tiles randomly in the appropriate locations, while making sure there aren't too
 		// many with the same type in a line.
 		Vector3Int location = 					Vector3Int.zero;
-		List<TileType> typesInRow = 			new List<TileType>(); // Helps with the latter goal.
-		List<TileType> typesInColumn = 			new List<TileType>();
-		const int maxInLine = 					2;
 		TileController newTile = 				null;
 
 		for (int column = 0; column < numOfColumns; column++) 
@@ -129,29 +126,8 @@ public class BoardGenerator : MonoBehaviour
 				
 				if (backgroundTile != null)
 					SpawnBackgroundTile(location);
-				
-				if (!typesInColumn.Contains(newTile.Type)) 
-					// As we move through the rows, we're assessing the contents of one column.
-					typesInColumn.Add(newTile.Type);
-
-				if ( (row > 0 && row % maxInLine == 0) || row == numOfRows - 1) // Check for tile type redundancy
-				{
-					if (typesInColumn.Count == 1) // We found some!
-					{
-						RandomlyChangeTileType(newTile);
-					}
-					
-					// For the next time we check for tile type redundancy in a column
-					typesInColumn.Clear();
-					typesInColumn.Add(newTile.Type);
-				}
-
 			}
-
-			typesInColumn.Clear();
-
 		}
-
 	}
 
 	TileController SpawnTileAt(Vector3Int boardCoord)
@@ -160,55 +136,212 @@ public class BoardGenerator : MonoBehaviour
 		// how each tile type has its own probability of being assigned to a tile
 		float randNum = 					Random.Range(0f, 100f) / 10f;
 		Vector3 localPos = 					(Vector3)boardCoord * adjustedBFootprint;
+		// Adjust board pos to in-world pos
 		Vector3 worldPos = 					boardHolder.TransformPoint(localPos);
-		bool horizontalCheckPassed =		false;
-		bool verticalCheckPassed =			false;
-		
-		if (boardCoord.x < 2) 
-		{
-			horizontalCheckPassed = true;
-		} 
-		else if (spawnedTiles[boardCoord.x - 2, boardCoord.y].Type 
-					!= spawnedTiles[boardCoord.x - 1, boardCoord.y].Type) 
-					{
-			horizontalCheckPassed = true;
-		}
-		
-		if (boardCoord.y < 2) {
-			verticalCheckPassed = true;
-		} else if (spawnedTiles[boardCoord.x, boardCoord.y - 2].Type 
-					!= spawnedTiles[boardCoord.x, boardCoord.y - 1].Type) {
-			verticalCheckPassed = true;
-		}
 
-		foreach (GridUnit tile in Tiles)
-		{
-			if (randNum < tile.adjustedProbability)
+		bool done = false;
+		while (!done) {
+			foreach (GridUnit tile in Tiles)
 			{
-				if (!horizontalCheckPassed && 
-						(tile.Type == spawnedTiles[boardCoord.x - 1, boardCoord.y].Type)) {
-					continue;
+				if (randNum < tile.adjustedProbability)
+				{
+					/* Although functional, this is wasteful on resources */ 
+						//if (RedundancyCheckTrue(boardCoord, Direction.All, maxInLine, tile)) { continue; }
+					
+					// Checks for horizontal redundancy
+					if (RedundancyCheckTrue(boardCoord, Direction.Left, maxInLine, tile)) {
+						continue;
+					}
+					
+					// Checks for vertical redundancy
+					if (RedundancyCheckTrue(boardCoord, Direction.Down, maxInLine, tile)) {
+						continue;
+					}
+					
+					// If not redundant, creates a new tile
+					TileController newTile = 	Instantiate(tileSettings.baseTilePrefab, worldPos, 
+												Quaternion.identity, tileHolder);
+					newTile.Type = 				tile.Type;
+					
+					done = true;
+					return newTile;
 				}
-				
-				if (!verticalCheckPassed && 
-						(tile.Type == spawnedTiles[boardCoord.x, boardCoord.y - 1].Type)) {
-					continue;
-				}
-				
-				TileController newTile = 	Instantiate(tileSettings.baseTilePrefab, worldPos, 
-											Quaternion.identity, tileHolder);
-				newTile.Type = 				tile.Type;
-				// Adjust pos to local pos
-				
-				return newTile;
 			}
+			// If end of tile list is reached, start from beginning of list
+			if (randNum >= 10) 
+				randNum -= 10;
+			
+			// Failsafe for corner cases regarding bad initialization
+			if (tileTypes.Count - 1 < Tiles.Count)
+				done = true;
 		}
 
-		// If end of the list is reached before tile is instantiated, spawns first tile in list
+		// If somehow everything fails from empty list of Tiles
 		TileController newAltTile =	Instantiate(tileSettings.baseTilePrefab, worldPos, 
 									Quaternion.identity, tileHolder);
 		newAltTile.Type = 				Tiles[0].Type;
 		return newAltTile;
+	}
+	
+	/// <summary>
+	/// Starts the redundancy check process but with a temporary data structure GridUnit appended
+	/// Use this to check for redundancy *before* generating a tile
+	/// To check redundancy on an already existing tile, use the alternate call with 3 parameters
+	/// </summary>
+	bool RedundancyCheckTrue(Vector3Int oldBoardCoord, Direction dir, int depth, GridUnit tempTile) {
+		// Needs to check after current tile
+		if (depth < 1)
+			return false;
+			
+		Vector3Int newBoardCoord = oldBoardCoord;
+		
+		// Only checks one tile ahead before transitioning to main function
+		switch((Direction) dir) {
+			case Direction.Left: {
+				newBoardCoord += Vector3Int.left;
+				if (oldBoardCoord.x < depth) {
+					return false;
+				}
+				if (spawnedTiles[oldBoardCoord.x - 1, oldBoardCoord.y].Type != tempTile.Type) {
+					return false;
+				} else return RedundancyCheckTrue(newBoardCoord, dir, depth - 1);
+			}
+			case Direction.Down: {
+				newBoardCoord += Vector3Int.down;
+				if (oldBoardCoord.y < depth) {
+					return false;
+				}
+				if (spawnedTiles[oldBoardCoord.x, oldBoardCoord.y - 1].Type != tempTile.Type) {
+					return false;
+				} else return RedundancyCheckTrue(newBoardCoord, dir, depth - 1);
+			}
+			case Direction.Right: {
+				newBoardCoord += Vector3Int.right;
+				if (numOfColumns - oldBoardCoord.x - 1 < depth) {
+					return false;
+				}
+				if (spawnedTiles[oldBoardCoord.x + 1, oldBoardCoord.y]?.Type != tempTile.Type) {
+					return false;
+				} else return RedundancyCheckTrue(newBoardCoord, dir, depth - 1);
+			}
+			case Direction.Up: {
+				newBoardCoord += Vector3Int.up;
+				if (numOfRows - oldBoardCoord.y - 1 < depth) {
+					return false;
+				}
+				if (spawnedTiles[oldBoardCoord.x, oldBoardCoord.y + 1]?.Type != tempTile.Type) {
+					return false;
+				} else return RedundancyCheckTrue(newBoardCoord, dir, depth - 1);
+			}
+			case Direction.All: {
+				// Please do not pre-generate bidirectionally or else this will not observe central pivots
+				if (RedundancyCheckTrue(oldBoardCoord, Direction.Left, depth, tempTile)
+					|| RedundancyCheckTrue(oldBoardCoord, Direction.Down, depth, tempTile)
+					|| RedundancyCheckTrue(oldBoardCoord, Direction.Right, depth, tempTile)
+					|| RedundancyCheckTrue(oldBoardCoord, Direction.Up, depth, tempTile))
+					return true;
+				else return false;
+			}
+			default: return false;
+		}
+	}
+
+	
+	/// <summary>
+	/// Recursively checks in a specific direction for matches up to a specified depth
+	/// If there are not enough tiles in a direction, it is not redundant
+	/// If at least one tile in the specified depth is different, it is not redundant
+	/// If all of the tiles in the specified depth are the same, it is redundant
+	/// </summary>
+	bool RedundancyCheckTrue(Vector3Int boardCoord, Direction dir, int depth) {
+		// Needs to check after current tile
+		if (depth < 1) {
+			return false;
+		}
+		
+		// Differentiates the direction on the grid and then searches for a match among all of the tiles
+		switch((Direction) dir) {
+			case Direction.Left: {
+				if (boardCoord.x < depth) {
+					return false;
+				}
+				for (int i = 1; i <= depth; i++) {
+					if (spawnedTiles[boardCoord.x, boardCoord.y].Type == spawnedTiles[boardCoord.x - i, boardCoord.y].Type)
+						return true;
+				}
+				return false;
+			}
+			case Direction.Down: {
+				if (boardCoord.y < depth) {
+					return false;
+				}
+				for (int i = 1; i <= depth; i++) {
+					if (spawnedTiles[boardCoord.x, boardCoord.y].Type == spawnedTiles[boardCoord.x, boardCoord.y - i].Type)
+						return true;
+				}
+				return false;
+			}
+			case Direction.Right: {
+				if (numOfColumns - boardCoord.x - 1 < depth) {
+					return false;
+				}
+				for (int i = 1; i <= depth; i++) {
+					if (spawnedTiles[boardCoord.x, boardCoord.y].Type == spawnedTiles[boardCoord.x + i, boardCoord.y].Type)
+						return true;
+				}
+				return false;
+			}
+			case Direction.Up: {
+				if (numOfRows - boardCoord.y - 1 < depth) {
+					return false;
+				}
+				for (int i = 1; i <= depth; i++) {
+					if (spawnedTiles[boardCoord.x, boardCoord.y].Type == spawnedTiles[boardCoord.x, boardCoord.y + i].Type)
+						return true;
+				}
+				return false;
+			}
+			case Direction.All: {
+				// Checks in all directions for conflicts, post generation only
+				if (RedundancyCheckTrue(boardCoord, Direction.Left, maxInLine))
+					return true;
+				if (RedundancyCheckTrue(boardCoord, Direction.Down, maxInLine))
+					return true;
+				if (RedundancyCheckTrue(boardCoord, Direction.Right, maxInLine))
+					return true;
+				if (RedundancyCheckTrue(boardCoord, Direction.Up, maxInLine))
+					return true;
+				
+				int bools_count = 0;
+				// Horizontal sliding checks
+				for (int i = 1; i < maxInLine; i++) {
+					if (RedundancyCheckTrue(boardCoord, Direction.Left, i))
+						bools_count++;
+					if (RedundancyCheckTrue(boardCoord, Direction.Right, maxInLine - i))
+						bools_count++;
+					
+				}
+				if (bools_count >= maxInLine)
+					return true;
+				else bools_count = 0;
+				
+				// Vertical sliding checks
+				for (int i = 1; i < maxInLine; i++) {
+					if (RedundancyCheckTrue(boardCoord, Direction.Down, i))
+						bools_count++;
+					if (RedundancyCheckTrue(boardCoord, Direction.Up, maxInLine - i))
+						bools_count++;
+				
+				}
+				if (bools_count >= maxInLine)
+					return true;
+				else bools_count = 0;
+
+				// Passed all checks
+				return false;
+			}
+			default: return false;
+		}
 	}
 
 	void SpawnBackgroundTile(Vector3Int boardCoord)
@@ -218,6 +351,23 @@ public class BoardGenerator : MonoBehaviour
 		Instantiate(backgroundTile, worldPos, Quaternion.identity, boardHolder);
 	}
 
+	void RandomlyChangeTileType(Vector3Int boardCoord)
+	{
+		TileController tile = spawnedTiles[boardCoord.x, boardCoord.y];
+		TileType oldType = 		tile.Type;
+		tileTypes.Remove(oldType); // To make sure we select a different type. We'll put it back in later.
+		int randIndex = 		Random.Range(0, tileTypes.Count);
+		tile.Type = 			tileTypes[randIndex];
+		tileTypes.Add(oldType);
+		
+		if (RedundancyCheckTrue(boardCoord, Direction.All, maxInLine)) {
+			RandomlyChangeTileType(boardCoord);
+		}
+	}
+
+	/// <summary>
+	/// Makes sure there aren't too many of the same tile type repeated in a line.
+	/// </summary>
 	void RandomlyChangeTileType(TileController tile)
 	{
 		TileType oldType = 		tile.Type;
@@ -275,7 +425,7 @@ public class BoardGenerator : MonoBehaviour
 			
 		}
 	}
-
+	
 	void RegisterTileTypes()
 	{
 		foreach (GridUnit tile in Tiles)
