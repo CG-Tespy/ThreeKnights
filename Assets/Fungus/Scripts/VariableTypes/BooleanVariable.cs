@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Fungus
 {
+    
     /// <summary>
     /// Boolean variable type.
     /// </summary>
@@ -98,4 +99,5 @@ namespace Fungus
             }
         }
     }
+    
 }

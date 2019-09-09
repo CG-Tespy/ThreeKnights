@@ -78,6 +78,8 @@ public class TileBoardController : MonoBehaviour
         // while alerting listeners of it.
         foreach (TileController tile in matchesOnBoard.TilesMatched)
         {
+            if (tile.Type == airTileType) // Avoid counting the same tile twice, in case of a T-match or somesuch
+                continue;
             tileClearReport.TileCleared =           tile;
             tileClearReport.OriginalTileType =      tile.Type;
             tile.Type =                             airTileType;

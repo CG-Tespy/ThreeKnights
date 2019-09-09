@@ -357,4 +357,6 @@ namespace Fungus.EditorUtils
     [CustomPropertyDrawer(typeof(Rigidbody2DData))]
     public class Rigidbody2DDataDrawer : VariableDataDrawer<Rigidbody2DVariable>
     { }
+
+    
 }

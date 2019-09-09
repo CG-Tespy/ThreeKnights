@@ -15,7 +15,7 @@ namespace Fungus
     [AddComponentMenu("")]
     public class SetVariable : Command
     {
-        [Tooltip("The variable whos value will be set")]
+        [Tooltip("The variable that will have its value set")]
         [VariableProperty(typeof(BooleanVariable),
                           typeof(IntegerVariable),
                           typeof(FloatVariable),
@@ -31,7 +31,8 @@ namespace Fungus
                           typeof(TextureVariable),
                           typeof(TransformVariable),
                           typeof(Vector2Variable),
-                          typeof(Vector3Variable))]
+                          typeof(Vector3Variable),
+                          typeof(TileVariable))]
         [SerializeField] protected Variable variable;
 
         [Tooltip("The type of math operation to be performed")]
@@ -85,13 +86,15 @@ namespace Fungus
         [Tooltip("Vector3 value to set with")]
         [SerializeField] protected Vector3Data vector3Data;
 
+        [Tooltip("Tile value to set with")]
+        [SerializeField] protected TileData tileData;
+
         protected virtual void DoSetOperation()
         {
             if (variable == null)
             {
                 return;
             }
-
 
             var t = variable.GetType();
 
