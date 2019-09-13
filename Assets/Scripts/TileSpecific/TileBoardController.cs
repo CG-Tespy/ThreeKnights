@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Linq;
 using Fungus;
+using System;
 
 /// <summary>
 /// Controls the tile board, managing various aspects of it.
@@ -69,6 +70,21 @@ public class TileBoardController : MonoBehaviour
         return GetTileAt(new Vector2Int(xPosition, yPosition));
     }
     
+    public IList<TileController> GetTilesRelativeTo(TileController tile, int howManyTiles, Vector2Int direction)
+    {
+        List<TileController> tiles = new List<TileController>();
+        Vector2Int tilePosition = tile.BoardPos;
+        for (int i = 1; i < howManyTiles + 1; i++)
+        {   
+            tilePosition += new Vector2Int(Math.Sign(direction.x) * i, Math.Sign(direction.y) * i);
+            TileController relativeTile = GetTileAt(tilePosition);
+            if (relativeTile != null)
+                tiles.Add(relativeTile);
+        }
+
+        return tiles;
+    }
+
     void OnAnySwapMade(TileSwapHandler swapHandler, TileSwapArgs swapArgs)
     {
         UpdateColumnsAndRows();

@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine.Events;
 using Fungus;
 
 /// <summary>
@@ -8,6 +6,7 @@ using Fungus;
 /// </summary>\
 public abstract class SimpleEvent<TEventType> : EventHandler where TEventType: EventHandler
 {
+    // So code outside of a Fungus block can respond to any of these being triggered.
     public static void Invoke()
     {
         System.Type eventType =                 typeof(TEventType);
