@@ -33,6 +33,8 @@ public class TileController : MonoBehaviour
         }
     }
 
+    public TileBoardController Board { get; set; }
+
     void Awake()
     {
         renderer =                                          GetComponent<Renderer>();

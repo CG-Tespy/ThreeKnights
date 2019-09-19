@@ -31,6 +31,7 @@ public class BoardGenerator : MonoBehaviour
 	
 	public TileSettings tileSettings;
 	public Transform tileHolder;
+	public Transform bgTileHolder;
 	public Transform boardHolder;
 	
 	public int numOfRows = 					8;
@@ -54,12 +55,12 @@ public class BoardGenerator : MonoBehaviour
 
 	// Best generate in Awake, before the board-controller is set to register the tiles
 	void Awake() {
-		StartGeneration();
+		Initialize();
 	}
 
 	//void Update() {	/* Debug */	if (true) { string thing = null; } }
 
-	bool StartGeneration() 
+	bool Initialize() 
 	{
 		// Quits if board dimensions are zero, or if there are no tiles set to populate it with
 		if (numOfRows < 1 || numOfColumns < 1 || Tiles.Count < 1)
@@ -75,14 +76,9 @@ public class BoardGenerator : MonoBehaviour
 		
 		// Generates probability range for each tile
 		FixProbability();
-
-		// Checks for duplicate tile types
 		RegisterTileTypes();
 
 		spawnedTiles = 						new TileController[numOfColumns, numOfRows];
-		GenerateBoard();
-		
-		//ReduceTileRedundancy(4);
 		
 		return true;
 	}
@@ -108,7 +104,7 @@ public class BoardGenerator : MonoBehaviour
 		}
 	}
 	
-	void GenerateBoard()
+	public TileController[,] GenerateBoard(TileBoardController boardController)
 	{
 		// Spawn all the tiles randomly in the appropriate locations, while making sure there aren't too
 		// many with the same type in a line.
@@ -120,7 +116,7 @@ public class BoardGenerator : MonoBehaviour
 			for (int row = 0; row < numOfRows; row++) 
 			{
 				location.Set(column, row, 0);
-				newTile = 						SpawnTileAt(location);
+				newTile = 						SpawnTileAt(location, boardController);
 				newTile.BoardPos = 				new Vector2Int(column, row);
 				spawnedTiles[column, row] = 	newTile;
 				
@@ -128,16 +124,16 @@ public class BoardGenerator : MonoBehaviour
 					SpawnBackgroundTile(location);
 			}
 		}
+
+		return spawnedTiles;
 	}
 
-	TileController SpawnTileAt(Vector3Int boardCoord)
+	TileController SpawnTileAt(Vector3Int boardCoord, TileBoardController boardTileIsFor)
 	{
 		// Generate a random number to decide which tile should be spawned, to go with
 		// how each tile type has its own probability of being assigned to a tile
 		float randNum = 					Random.Range(0f, 100f) / 10f;
 		Vector3 localPos = 					(Vector3)boardCoord * adjustedBFootprint;
-		// Adjust board pos to in-world pos
-		Vector3 worldPos = 					boardHolder.TransformPoint(localPos);
 
 		bool done = false;
 		while (!done) {
@@ -159,10 +155,12 @@ public class BoardGenerator : MonoBehaviour
 					}
 					
 					// If not redundant, creates a new tile
-					TileController newTile = 	Instantiate(tileSettings.baseTilePrefab, worldPos, 
-												Quaternion.identity, tileHolder);
+					TileController newTile = 	Instantiate(tileSettings.baseTilePrefab, Vector3.zero, 
+												Quaternion.identity);
+					newTile.transform.SetParent(tileHolder);
+					newTile.transform.localPosition = localPos;
 					newTile.Type = 				tile.Type;
-					
+					newTile.Board = boardTileIsFor;
 					done = true;
 					return newTile;
 				}
@@ -177,9 +175,12 @@ public class BoardGenerator : MonoBehaviour
 		}
 
 		// If somehow everything fails from empty list of Tiles
-		TileController newAltTile =	Instantiate(tileSettings.baseTilePrefab, worldPos, 
+		TileController newAltTile =	Instantiate(tileSettings.baseTilePrefab, Vector3.zero, 
 									Quaternion.identity, tileHolder);
+		newAltTile.transform.SetParent(tileHolder);
+		newAltTile.transform.localPosition = localPos;
 		newAltTile.Type = 				Tiles[0].Type;
+		newAltTile.Board = boardTileIsFor;
 		return newAltTile;
 	}
 	
@@ -188,7 +189,8 @@ public class BoardGenerator : MonoBehaviour
 	/// Use this to check for redundancy *before* generating a tile
 	/// To check redundancy on an already existing tile, use the alternate call with 3 parameters
 	/// </summary>
-	bool RedundancyCheckTrue(Vector3Int oldBoardCoord, Direction dir, int depth, GridUnit tempTile) {
+	bool RedundancyCheckTrue(Vector3Int oldBoardCoord, Direction dir, int depth, GridUnit tempTile) 
+	{
 		// Needs to check after current tile
 		if (depth < 1)
 			return false;
@@ -347,8 +349,11 @@ public class BoardGenerator : MonoBehaviour
 	void SpawnBackgroundTile(Vector3Int boardCoord)
 	{
 		Vector3 localPos = 					(Vector3)boardCoord * adjustedBFootprint + Vector3.forward;
-		Vector3 worldPos = 					boardHolder.TransformPoint(localPos);
-		Instantiate(backgroundTile, worldPos, Quaternion.identity, boardHolder);
+		GameObject bgTile = 				Instantiate(backgroundTile, Vector3.zero, Quaternion.identity);
+		// Make sure positioning and scale fit the parent
+		bgTile.transform.SetParent(bgTileHolder);
+		bgTile.transform.localPosition = localPos;
+
 	}
 
 	void RandomlyChangeTileType(Vector3Int boardCoord)

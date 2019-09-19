@@ -11,6 +11,7 @@ public class TileSwapHandler : MonoBehaviour
     [SerializeField] Flowchart gameVals;
     [Tooltip("Flowchart containing the primitive variable types this will need.")]
     [SerializeField] Flowchart tileSwapVals;
+    [SerializeField] protected TileBoardController gameBoard;
 
     #region Fungus vars from Flowcharts
     ObjectVariable airTileVar;
@@ -29,17 +30,17 @@ public class TileSwapHandler : MonoBehaviour
     #endregion
 
     #region Properties
-    TileType AirTileType                            { get { return airTileVar.Value as TileType; } }
+    protected TileType AirTileType                  { get { return airTileVar.Value as TileType; } }
     string CancelAxis                               { get { return cancelAxisVar.Value; } }
     float SwapDuration                              { get { return swapDurationVar.Value; } }
-    bool SwapEnabled                                
+    protected bool SwapEnabled                                
     { 
         get                                         { return swapEnabledVar.Value; } 
         set                                         { swapEnabledVar.Value = value; }
     }
     #endregion
 
-    void Awake()
+    protected virtual void Awake()
     {
         tileBoard =                                 FindObjectOfType<TileBoardController>();
         TileController.AnyClicked +=                OnAnyTileClicked;
@@ -47,43 +48,76 @@ public class TileSwapHandler : MonoBehaviour
         swapEnabledVar =                            tileSwapVals.GetVariable("swapEnabled") as BooleanVariable;
         cancelAxisVar =                             tileSwapVals.GetVariable("cancelAxis") as StringVariable;
         airTileVar =                                gameVals.GetVariable("airTileType") as ObjectVariable;
+        AnySwapMade += this.OnAnySwapMade;
     }
 
-    void OnDestroy()
+    protected virtual void OnDestroy()
     {
         // Always make sure to clean up when necessary, if listening to static events!
         TileController.AnyClicked -=                OnAnyTileClicked;
+        AnySwapMade -= this.OnAnySwapMade;
+    }
+
+    protected virtual void OnAnySwapMade(TileSwapHandler handler, TileSwapArgs swapArgs)
+    {
+        this.Reset();
     }
 
     void Update()
     {
         // Let the player cancel their selection
         if (Input.GetAxis(CancelAxis) != 0 && SwapEnabled)
-            UnregisterTileClicks();
+            UnregisterTiles();
     }
 
-    void OnAnyTileClicked(TileController tile)
+    protected virtual void OnAnyTileClicked(TileController tile)
     {
-        if (!SwapEnabled)
+        if (!SwapEnabled || ShouldIgnoreTile(tile))
             return;
+        
+        RegisterTile(tile);
+
+        if (TwoTilesClicked()) // Consider swapping the tiles.
+        {
+            ConsiderSwappingTiles();
+        }
+
+    }
+
+    protected void RegisterTile(TileController tile)
+    {
         if (firstTileClicked == null)
             firstTileClicked =                      tile;
         else if (secondTileClicked == null && firstTileClicked != tile)
             secondTileClicked =                     tile;
+    }
 
-        if (secondTileClicked != null) // Consider swapping the tiles.
+    protected virtual bool ShouldIgnoreTile(TileController tile)
+    {
+        return TileNotOnGameBoard(tile);
+    }
+
+    bool TileNotOnGameBoard(TileController tile)
+    {
+        return tile.Board != this.gameBoard;
+    }
+
+    protected bool TwoTilesClicked()
+    {
+        return firstTileClicked != null && secondTileClicked != null;
+    }
+
+    protected virtual void ConsiderSwappingTiles()
+    {
+        TileSwapType swapType =                 CanSwapTiles(firstTileClicked, secondTileClicked);
+
+        if (swapType != TileSwapType.none) // We have a valid swap attempt here!
         {
-            TileSwapType swapType =                 CanSwapTiles(firstTileClicked, secondTileClicked);
-
-            if (swapType != TileSwapType.none) // We have a valid swap attempt here!
-            {
-                SwapEnabled =                       false; // Will be reenabled once the swap is done
-                StartCoroutine(SwapCoroutine(firstTileClicked, secondTileClicked, swapType));
-            }
-            else
-                UnregisterTileClicks();
+            SwapEnabled =                       false; // Will be reenabled once the swap is done
+            StartCoroutine(SwapCoroutine(firstTileClicked, secondTileClicked, swapType));
         }
-
+        else
+            UnregisterTiles();
     }
 
     #region Helpers
@@ -107,7 +141,7 @@ public class TileSwapHandler : MonoBehaviour
         }
 
         UpdateSwapResults(swapType);
-        UnregisterTileClicks();
+        UnregisterTiles();
         AlertSwapListeners();
         SwapEnabled =                         true;
 
@@ -145,7 +179,7 @@ public class TileSwapHandler : MonoBehaviour
 
     }
 
-    IEnumerator AdjacentSwapCoroutine(TileController firstTile, TileController secondTile)
+    protected virtual IEnumerator AdjacentSwapCoroutine(TileController firstTile, TileController secondTile)
     {
         // Has the tiles move as they're swapped. Helps see if the swapping is even happening correctly.
         Vector3 firstPos =                          firstTile.transform.position;
@@ -170,7 +204,12 @@ public class TileSwapHandler : MonoBehaviour
 
     }
 
-    void UnregisterTileClicks()
+    void Reset()
+    {
+        UnregisterTiles();
+    }
+
+    void UnregisterTiles()
     {
         firstTileClicked =                          null;
         secondTileClicked =                         null;
@@ -179,11 +218,16 @@ public class TileSwapHandler : MonoBehaviour
     /// <summary>
     /// Checks if the two tiles can be swapped, and returns what kind of swap can be made between them.
     /// </summary>
-    TileSwapType CanSwapTiles(TileController tile1, TileController tile2)
+    protected virtual TileSwapType CanSwapTiles(TileController tile1, TileController tile2)
     {
         // First, we see if any of the swap rules are broken.
 
-        // Rulebreak 1: Horizontal swaps involving air tiles
+        // Rulebreak 1: The first tile being an air tile
+        bool firstTileIsAir = tile1.Type == AirTileType;
+        if (firstTileIsAir)
+            return TileSwapType.none;
+
+        // Rulebreak 2: Horizontal swaps involving air tiles
         bool horizSwap =                            tile1.BoardPos.x != tile2.BoardPos.x;
         if (horizSwap)
         {
@@ -191,7 +235,7 @@ public class TileSwapHandler : MonoBehaviour
                 return TileSwapType.none;
         }
 
-        // Rulebreak 2: Vertical swaps that involve an air tile and a non-air tile below it
+        // Rulebreak 3: Vertical swaps that involve an air tile and a non-air tile below it
         bool vertSwap =                             tile1.BoardPos.y != tile2.BoardPos.y;
         if (vertSwap)
         {
@@ -252,6 +296,7 @@ public class TileSwapHandler : MonoBehaviour
         AnySwapMade.Invoke(this, swapResults);
         SwapMadeEvent.Invoke(swapResults);
     }
+
     #endregion
     
 }
