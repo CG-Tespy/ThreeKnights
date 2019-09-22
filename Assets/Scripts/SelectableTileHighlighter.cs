@@ -6,6 +6,7 @@ using Fungus;
 public class SelectableTileHighlighter : MonoBehaviour
 {
     [SerializeField] Flowchart gameVals;
+    [SerializeField] Flowchart tileSwapVals;
     [SerializeField] protected Transform highlighter;
     [SerializeField] protected Transform highlighterGroup;
     [SerializeField] protected TileBoardController gameBoard;
@@ -13,9 +14,15 @@ public class SelectableTileHighlighter : MonoBehaviour
     protected TileController tileClicked;
 
     ObjectVariable airTileVar;
+    BooleanVariable swapEnabled;
     TileType AirTileType
     {
         get { return airTileVar.Value as TileType; }
+    }
+
+    bool SwapEnabled
+    {
+        get { return swapEnabled.Value; }
     }
     
     protected IList<Transform> activeHighlighters = new List<Transform>();
@@ -30,6 +37,7 @@ public class SelectableTileHighlighter : MonoBehaviour
     
     protected virtual void Awake()
     {
+        swapEnabled = tileSwapVals.GetVariable("swapEnabled") as BooleanVariable;
         SetToHighlightWhenTileClicked();
         SetToResetWhenSwapHappens();
         RegisterTheAirTileType();
@@ -42,7 +50,7 @@ public class SelectableTileHighlighter : MonoBehaviour
 
     void SetToResetWhenSwapHappens()
     {
-        TileSwapHandler.AnySwapMade += OnAnySwapMade;
+        TileSwapHandler.AnyPhysicalSwapMade += OnAnyPhysicalSwapMade;
     }
 
     void RegisterTheAirTileType()
@@ -58,10 +66,10 @@ public class SelectableTileHighlighter : MonoBehaviour
     void StopListeningForEvents()
     {
         TileController.AnyClicked -= OnAnyTileClicked;
-        TileSwapHandler.AnySwapMade -= OnAnySwapMade;
+        TileSwapHandler.AnyPhysicalSwapMade -= OnAnyPhysicalSwapMade;
     }
 
-    protected virtual void OnAnySwapMade(TileSwapHandler swapHandler, TileSwapArgs args)
+    protected virtual void OnAnyPhysicalSwapMade(TileSwapHandler swapHandler, TileSwapArgs args)
     {
         this.Reset();
     }
@@ -86,7 +94,7 @@ public class SelectableTileHighlighter : MonoBehaviour
 
     protected virtual bool NotAllowedToAct()
     {
-        return this.enabled == false || this.gameObject.activeSelf == false;
+        return this.enabled == false || this.gameObject.activeSelf == false || !SwapEnabled;
     }
 
     void RegisterTileClicked(TileController tile)

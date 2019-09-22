@@ -72,7 +72,7 @@ public class GridMap : MonoBehaviour
 			
 			allFound = allFound.OrderBy(x => Vector2.Distance(pos,x.transform.position)).ToList();
 			for(int k = 0; k < allFound.Count; k++) {			
-				Debug.Log("obj" + k + "  =  " + allFound[k].name + " : " + allFound[k].GetInstanceID());
+				Debug.Log("obj" + k + "  = " + allFound[k].name + " : " + allFound[k].GetInstanceID());
 			}
 
 		}

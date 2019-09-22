@@ -14,7 +14,7 @@ public class GravityControlHandler : MonoBehaviour
 
     void Awake()
     {
-        airTilePrefab.Type =                    airTileType;
+        airTilePrefab.Type = airTileType;
     }
 
     // Start is called before the first frame update

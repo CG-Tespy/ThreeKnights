@@ -3,7 +3,7 @@
 [CreateAssetMenu(menuName = "Three Knights/Tile Effects/Score Change", fileName = "NewScoreChange")]
 public class ScoreChange : TileEffect
 {
-    [SerializeField] NCOperator changeType =            NCOperator.add;
+    [SerializeField] NCOperator changeType = NCOperator.add;
     [Tooltip("The number applied to another in this value change.")]
     [SerializeField] int number;
 
@@ -25,16 +25,16 @@ public class ScoreChange : TileEffect
                 toApplyTo.score += number;
                 return;
             case NCOperator.subtract:
-                toApplyTo.score -=  number;
+                toApplyTo.score -= number;
                 return;
             case NCOperator.multiply:
-                toApplyTo.score *=  number;
+                toApplyTo.score *= number;
                 return;
             case NCOperator.divide:
-                toApplyTo.score /=  number;
+                toApplyTo.score /= number;
                 return;
             case NCOperator.modulo:
-                toApplyTo.score %=  number;
+                toApplyTo.score %= number;
                 return;
             default:
                 Debug.LogError("NCOperator " + changeType + " not accounted for.");

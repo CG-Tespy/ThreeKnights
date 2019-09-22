@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Handles swapping tiles between different boards.
@@ -46,11 +47,11 @@ public class InterboardSwapHandler : TileSwapHandler
         return firstTile.Board != secondTile.Board;
     }
 
-    protected override IEnumerator AdjacentSwapCoroutine(TileController firstTile, TileController secondTile)
+    protected override async Task AdjacentSwapTask(TileController firstTile, TileController secondTile)
     {
-        yield return StartCoroutine(base.AdjacentSwapCoroutine(firstTile, secondTile));
-
         SwapRegisteredBoardsBetween(firstTile, secondTile);
+        await base.AdjacentSwapTask(firstTile, secondTile);
+        
     }
 
     void SwapRegisteredBoardsBetween(TileController firstTile, TileController secondTile)

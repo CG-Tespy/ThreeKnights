@@ -11,7 +11,7 @@ public class TileClickEvent : EventHandler
 {
     protected virtual void Awake()
     {
-        TileController.AnyClicked +=                    OnTileClicked;
+        TileController.AnyClicked += OnTileClicked;
     }
 
     protected virtual void OnTileClicked(TileController tileClicked)

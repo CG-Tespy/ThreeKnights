@@ -14,7 +14,7 @@ public class AdjacentSwapHandler : SwapHandler
 
     TileController firstTile, secondTile; // The tiles clicked
 
-    TileSwapArgs swapContext =              new TileSwapArgs();
+    TileSwapArgs swapContext = new TileSwapArgs();
 
     #region Fungus Variables
     BooleanVariable swapEnabled;
@@ -62,7 +62,7 @@ public class AdjacentSwapHandler : SwapHandler
     void OnDestroy()
     {
         // Always make sure to clean up when necessary, if listening to static events!
-        TileController.AnyClicked -=                OnAnyTileClicked;
+        TileController.AnyClicked -= OnAnyTileClicked;
     }
 
     protected virtual void OnAnyTileClicked(TileController tile)
@@ -71,46 +71,46 @@ public class AdjacentSwapHandler : SwapHandler
             return;
 
         if (firstTile == null)
-            firstTile =                         tile;
+            firstTile = tile;
         else if (secondTile == null && firstTile != tile) // Make sure the tiles are different
-            secondTile =                        tile;
+            secondTile = tile;
 
-        bool twoTilesClicked =                  firstTile != null && secondTile != null;
+        bool twoTilesClicked = firstTile != null && secondTile != null;
 
         if (twoTilesClicked)
         {
             UpdateSwapContext();
             if (NoRulesViolated())
             {
-                SwapEnabled =                       false; // Let the swap finish before this can do another one
+                SwapEnabled = false; // Let the swap finish before this can do another one
             }
         }
     }
 
     protected IEnumerator SwapTiles()
     {
-        TileController tile1 =                  swapContext.TilesInvolved[0];
-        TileController tile2 =                  swapContext.TilesInvolved[1];
+        TileController tile1 = swapContext.TilesInvolved[0];
+        TileController tile2 = swapContext.TilesInvolved[1];
 
         // Smoothly swap their physical positions
-        Vector3 tile1Pos =                      tile1.transform.position;
-        Vector3 tile2Pos =                      tile2.transform.position;
+        Vector3 tile1Pos = tile1.transform.position;
+        Vector3 tile2Pos = tile2.transform.position;
 
-        float timer =                           0;
+        float timer = 0;
         while (timer < SwapDuration)
         {
-            timer +=                            Time.deltaTime;
+            timer += Time.deltaTime;
 
-            tile1.transform.position =          Vector3.Lerp(tile1Pos, tile2Pos, timer / SwapDuration);
-            tile2.transform.position =          Vector3.Lerp(tile2Pos, tile1Pos, timer / SwapDuration);
+            tile1.transform.position = Vector3.Lerp(tile1Pos, tile2Pos, timer / SwapDuration);
+            tile2.transform.position = Vector3.Lerp(tile2Pos, tile1Pos, timer / SwapDuration);
 
             yield return new WaitForFixedUpdate();
         }
 
         // Then do the same for their board positions
-        Vector2Int firstBoardPos =              tile1.BoardPos;
-        tile1.BoardPos =                        tile2.BoardPos;
-        tile2.BoardPos =                        firstBoardPos;
+        Vector2Int firstBoardPos = tile1.BoardPos;
+        tile1.BoardPos = tile2.BoardPos;
+        tile2.BoardPos = firstBoardPos;
 
         throw new System.NotImplementedException();
     }
@@ -119,11 +119,11 @@ public class AdjacentSwapHandler : SwapHandler
     #region Helpers
     protected virtual void RegisterVariables()
     {
-        swapEnabled =                                   gameVals.GetVariable("swapEnabled") as BooleanVariable;
-        swapDurationVar =                           tileSwapVals.GetVariable("swapDuration") as FloatVariable;
-        cancelAxisVar =                             tileSwapVals.GetVariable("cancelAxis") as StringVariable;
-        airTileVar =                                gameVals.GetVariable("airTileType") as ObjectVariable;
-        lastSwapFreeVar =                           tileSwapVals.GetVariable("lastSwapFree") as BooleanVariable;
+        swapEnabled = gameVals.GetVariable("swapEnabled") as BooleanVariable;
+        swapDurationVar = tileSwapVals.GetVariable("swapDuration") as FloatVariable;
+        cancelAxisVar = tileSwapVals.GetVariable("cancelAxis") as StringVariable;
+        airTileVar = gameVals.GetVariable("airTileType") as ObjectVariable;
+        lastSwapFreeVar = tileSwapVals.GetVariable("lastSwapFree") as BooleanVariable;
     }
 
     protected virtual void RegisterRules()
@@ -143,15 +143,15 @@ public class AdjacentSwapHandler : SwapHandler
         if (secondTile != null)
             swapContext.TilesInvolved.Add(secondTile);
 
-        swapContext.SwapType =          TileSwapType.adjacent;
+        swapContext.SwapType = TileSwapType.adjacent;
     }
 
     protected virtual bool NoRulesViolated()
     {
         foreach (SwapRule applyRule in swapRules)
         {
-            bool result =               applyRule(swapContext);
-            bool ruleViolated =         result == false;
+            bool result = applyRule(swapContext);
+            bool ruleViolated = result == false;
 
             if (ruleViolated)
                 return false;
@@ -162,8 +162,8 @@ public class AdjacentSwapHandler : SwapHandler
 
     protected virtual void UnregisterTileClicks()
     {
-        firstTile =                     null;
-        secondTile =                    null;
+        firstTile = null;
+        secondTile = null;
     }
     #endregion
 
@@ -186,26 +186,26 @@ public class AdjacentSwapHandler : SwapHandler
         if (NoAirTilesInvolved(args)) // This rule wouldn't even need to apply, so...
             return true;
 
-        TileController tile1 =              args.TilesInvolved[0];
-        TileController tile2 =              args.TilesInvolved[2];
+        TileController tile1 = args.TilesInvolved[0];
+        TileController tile2 = args.TilesInvolved[2];
 
-        bool bothAirTiles =                 tile1.Type == airTileType && tile2.Type == airTileType;
+        bool bothAirTiles = tile1.Type == airTileType && tile2.Type == airTileType;
 
         if (bothAirTiles) // No swapping two air tiles. That is pointless.
             return false;
 
         // Which is the air tile?
-        TileController airTile =            null;
-        TileController otherTile =          null;
+        TileController airTile = null;
+        TileController otherTile = null;
         if (tile1.Type == airTileType)
         {
-            airTile =                       tile1;
-            otherTile =                     tile2;
+            airTile = tile1;
+            otherTile = tile2;
         }
         else if (tile2.Type == airTileType)
         {
-            airTile =                       tile2;
-            otherTile =                     tile1;
+            airTile = tile2;
+            otherTile = tile1;
         }
 
         return airTile.BoardPos.y > otherTile.BoardPos.y;

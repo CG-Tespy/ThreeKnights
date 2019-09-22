@@ -9,9 +9,9 @@ public class TileType : ScriptableObject
     [Tooltip("Defines the aesthetic of the tile.")]
     [SerializeField] Material material;
     [Tooltip("Base point value for when a match is made with tiles of this type.")]
-    [SerializeField] int pointValue =                   10;
+    [SerializeField] int pointValue = 10;
     [Tooltip("Any special effects tied to this particular type. May be better to just use Fungus for this...")]
-    [SerializeField] List<TileEffect> effects =         new List<TileEffect>();
+    [SerializeField] List<TileEffect> effects = new List<TileEffect>();
 
     public virtual string Description
     {

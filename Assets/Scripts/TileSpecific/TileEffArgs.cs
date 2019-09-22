@@ -7,8 +7,8 @@ using System.Collections.Generic;
 /// </summary>
 public class TileEffArgs : EventArgs
 {
-    public List<TileAction> actionsInvolved =           new List<TileAction>();
-    public List<TileType> tileTypesActive =             new List<TileType>();
+    public List<TileAction> actionsInvolved = new List<TileAction>();
+    public List<TileType> tileTypesActive = new List<TileType>();
     public IScoreHandler playerScore;
 
 }

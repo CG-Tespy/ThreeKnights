@@ -11,7 +11,7 @@ public class TileDragEnterEvent : EventHandler
     public static void Invoke(TileDragArgs drag)
     {
         if (drag != null)
-            lastTileDrag =                      drag;
+            lastTileDrag = drag;
 
         foreach (TileDragEnterEvent responder in FindObjectsOfType<TileDragEnterEvent>())
             responder.ExecuteBlock();

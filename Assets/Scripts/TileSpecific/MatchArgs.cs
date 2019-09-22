@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public class MatchArgs : System.EventArgs
 {
-    protected List<TileController> tilesMatched =      new List<TileController>();
+    protected List<TileController> tilesMatched = new List<TileController>();
     public List<TileController> TilesMatched
     {
         get { return tilesMatched; }

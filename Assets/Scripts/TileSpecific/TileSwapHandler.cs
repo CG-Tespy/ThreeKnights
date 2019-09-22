@@ -1,8 +1,12 @@
-﻿using System.Collections;
+﻿using System.Runtime.CompilerServices;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using Fungus;
+using System.Threading.Tasks;
+
+using SysTask = System.Threading.Tasks.Task;
 
 public class TileSwapHandler : MonoBehaviour
 {
@@ -24,8 +28,9 @@ public class TileSwapHandler : MonoBehaviour
 
     TileBoardController tileBoard;
     TileController firstTileClicked, secondTileClicked;
-    TileSwapArgs swapResults =                      new TileSwapArgs();
-    public static UnityAction<TileSwapHandler, TileSwapArgs> AnySwapMade =  delegate {};
+    TileSwapArgs swapResults = new TileSwapArgs();
+    public static UnityAction<TileSwapHandler, TileSwapArgs> AnyPhysicalSwapMade = delegate {};
+    public static UnityAction<TileSwapHandler, TileSwapArgs> AnyBoardSwapMade = delegate {};
     // ^ So custom code can respond to the swaps without having to be involved in a Fungus block.
     #endregion
 
@@ -42,23 +47,23 @@ public class TileSwapHandler : MonoBehaviour
 
     protected virtual void Awake()
     {
-        tileBoard =                                 FindObjectOfType<TileBoardController>();
-        TileController.AnyClicked +=                OnAnyTileClicked;
-        swapDurationVar =                           tileSwapVals.GetVariable("swapDuration") as FloatVariable;
-        swapEnabledVar =                            tileSwapVals.GetVariable("swapEnabled") as BooleanVariable;
-        cancelAxisVar =                             tileSwapVals.GetVariable("cancelAxis") as StringVariable;
-        airTileVar =                                gameVals.GetVariable("airTileType") as ObjectVariable;
-        AnySwapMade += this.OnAnySwapMade;
+        tileBoard = FindObjectOfType<TileBoardController>();
+        TileController.AnyClicked += OnAnyTileClicked;
+        swapDurationVar = tileSwapVals.GetVariable("swapDuration") as FloatVariable;
+        swapEnabledVar = tileSwapVals.GetVariable("swapEnabled") as BooleanVariable;
+        cancelAxisVar = tileSwapVals.GetVariable("cancelAxis") as StringVariable;
+        airTileVar = gameVals.GetVariable("airTileType") as ObjectVariable;
+        AnyPhysicalSwapMade += this.OnAnyPhysicalSwapMade;
     }
 
     protected virtual void OnDestroy()
     {
         // Always make sure to clean up when necessary, if listening to static events!
-        TileController.AnyClicked -=                OnAnyTileClicked;
-        AnySwapMade -= this.OnAnySwapMade;
+        TileController.AnyClicked -= OnAnyTileClicked;
+        AnyPhysicalSwapMade -= this.OnAnyPhysicalSwapMade;
     }
 
-    protected virtual void OnAnySwapMade(TileSwapHandler handler, TileSwapArgs swapArgs)
+    protected virtual void OnAnyPhysicalSwapMade(TileSwapHandler handler, TileSwapArgs swapArgs)
     {
         this.Reset();
     }
@@ -87,9 +92,9 @@ public class TileSwapHandler : MonoBehaviour
     protected void RegisterTile(TileController tile)
     {
         if (firstTileClicked == null)
-            firstTileClicked =                      tile;
+            firstTileClicked = tile;
         else if (secondTileClicked == null && firstTileClicked != tile)
-            secondTileClicked =                     tile;
+            secondTileClicked = tile;
     }
 
     protected virtual bool ShouldIgnoreTile(TileController tile)
@@ -109,12 +114,13 @@ public class TileSwapHandler : MonoBehaviour
 
     protected virtual void ConsiderSwappingTiles()
     {
-        TileSwapType swapType =                 CanSwapTiles(firstTileClicked, secondTileClicked);
+        TileSwapType swapType = CanSwapTiles(firstTileClicked, secondTileClicked);
 
         if (swapType != TileSwapType.none) // We have a valid swap attempt here!
         {
-            SwapEnabled =                       false; // Will be reenabled once the swap is done
-            StartCoroutine(SwapCoroutine(firstTileClicked, secondTileClicked, swapType));
+            SwapEnabled = false; // Will be reenabled once the swap is done
+            SwapTask(firstTileClicked, secondTileClicked, swapType);
+            //StartCoroutine(SwapCoroutine(firstTileClicked, secondTileClicked, swapType));
         }
         else
             UnregisterTiles();
@@ -122,18 +128,18 @@ public class TileSwapHandler : MonoBehaviour
 
     #region Helpers
 
-    IEnumerator SwapCoroutine(TileController firstTile, TileController secondTile, TileSwapType swapType)
+    protected virtual async SysTask SwapTask(TileController firstTile, TileController secondTile, TileSwapType swapType)
     {
         switch (swapType)
         {
             case TileSwapType.adjacent:
-                yield return AdjacentSwapCoroutine(firstTile, secondTile);
+                await AdjacentSwapTask(firstTile, secondTile);
                 break;
             case TileSwapType.freeAdjacent:
-                yield return AdjacentSwapCoroutine(firstTile, secondTile);
+                await AdjacentSwapTask(firstTile, secondTile);
                 break; 
             case TileSwapType.knight:
-                yield return KnightSwapCoroutine(firstTile, secondTile);
+                await KnightSwapTask(firstTile, secondTile);
                 break;
             default:
                 Debug.LogError("TileSwapType " + swapType + " not accounted for!");
@@ -143,67 +149,75 @@ public class TileSwapHandler : MonoBehaviour
         UpdateSwapResults(swapType);
         UnregisterTiles();
         AlertSwapListeners();
-        SwapEnabled =                         true;
+        SwapEnabled = true;
+    }
+
+    protected virtual async SysTask AdjacentSwapTask(TileController firstTile, TileController secondTile)
+    {
+        // Has the tiles move as they're swapped. Helps see if the swapping is even happening correctly.
+        Vector3 firstPos = firstTile.transform.position;
+        Vector3 secondPos = secondTile.transform.position;
+
+        float swapTimer = 0f;
+        int untilNextFixedUpdate = (int)(SwapDuration * Time.fixedDeltaTime * 1000);
+
+        while (swapTimer < SwapDuration)
+        {
+            swapTimer += Time.deltaTime;
+            firstTile.transform.position = Vector3.Lerp(firstPos, secondPos, 
+                                                    swapTimer / SwapDuration);
+            secondTile.transform.position = Vector3.Lerp(secondPos, firstPos, 
+                                                    swapTimer / SwapDuration);
+
+            untilNextFixedUpdate = (int)(SwapDuration * Time.fixedDeltaTime * 1000);
+            await SysTask.Delay(untilNextFixedUpdate);
+        }
+
+        SwapBoardPositions(firstTile, secondTile);
 
     }
 
-    IEnumerator KnightSwapCoroutine(TileController firstTile, TileController secondTile)
+    protected virtual async SysTask KnightSwapTask(TileController firstTile, TileController secondTile)
     {
-        Vector2Int travelVec =                  secondTile.BoardPos - firstTile.BoardPos;
+        Vector2Int travelVec = secondTile.BoardPos - firstTile.BoardPos;
 
         // Pull off all the horizontal swaps before the vertical ones
         while (travelVec.x != 0)
         {
             // Find the appropriate adjacent tile, swap the first one with it, and update 
             // the travelVec accordingly.
-            int xOffset =                       (int) Mathf.Sign(travelVec.x);
-            Vector2Int otherTilePos =           firstTile.BoardPos;
-            otherTilePos.x +=                   xOffset;
-            TileController toSwapWith =         tileBoard.GetTileAt(otherTilePos);
+            int xOffset = (int) Mathf.Sign(travelVec.x);
+            Vector2Int otherTilePos = firstTile.BoardPos;
+            otherTilePos.x += xOffset;
+            TileController toSwapWith = tileBoard.GetTileAt(otherTilePos);
 
-            yield return AdjacentSwapCoroutine(firstTile, toSwapWith);
-            travelVec.x -=                      xOffset; // Bring the value closer to 0
+            await AdjacentSwapTask(firstTile, toSwapWith);
+            travelVec.x -= xOffset; // Bring the value closer to 0
         }
 
         // Similar logic for the vertical swaps
         while (travelVec.y != 0)
         {
-            int xOffset =                       (int) Mathf.Sign(travelVec.y);
-            Vector2Int otherTilePos =           firstTile.BoardPos;
-            otherTilePos.y +=                   xOffset;
-            TileController toSwapWith =         tileBoard.GetTileAt(otherTilePos);
+            int xOffset = (int) Mathf.Sign(travelVec.y);
+            Vector2Int otherTilePos = firstTile.BoardPos;
+            otherTilePos.y += xOffset;
+            TileController toSwapWith = tileBoard.GetTileAt(otherTilePos);
 
-            yield return AdjacentSwapCoroutine(firstTile, toSwapWith);
-            travelVec.y -=                      xOffset;
+            await AdjacentSwapTask(firstTile, toSwapWith);
+            travelVec.y -= xOffset;
         }
 
     }
 
-    protected virtual IEnumerator AdjacentSwapCoroutine(TileController firstTile, TileController secondTile)
+    protected virtual void SwapBoardPositions(TileController firstTile, TileController secondTile)
     {
-        // Has the tiles move as they're swapped. Helps see if the swapping is even happening correctly.
-        Vector3 firstPos =                          firstTile.transform.position;
-        Vector3 secondPos =                         secondTile.transform.position;
-        Vector2Int firstBoardPos =                  firstTile.BoardPos;
+        Vector2Int firstBoardPos = firstTile.BoardPos;
+        firstTile.BoardPos = secondTile.BoardPos;
+        secondTile.BoardPos = firstBoardPos;
 
-        float swapTimer =                           0f;
-
-        while (swapTimer < SwapDuration)
-        {
-            swapTimer +=                            Time.deltaTime;
-            firstTile.transform.position =          Vector3.Lerp(firstPos, secondPos, 
-                                                    swapTimer / SwapDuration);
-            secondTile.transform.position =         Vector3.Lerp(secondPos, firstPos, 
-                                                    swapTimer / SwapDuration);
-            yield return new WaitForFixedUpdate();
-        }
-
-        // Update the pos on the board too, not just the world pos
-        firstTile.BoardPos =                        secondTile.BoardPos;
-        secondTile.BoardPos =                       firstBoardPos;
-
+        UpdateSwapResults(TileSwapType.freeAdjacent, firstTile, secondTile);
+        AnyBoardSwapMade.Invoke(this, swapResults);
     }
-
     void Reset()
     {
         UnregisterTiles();
@@ -211,8 +225,8 @@ public class TileSwapHandler : MonoBehaviour
 
     void UnregisterTiles()
     {
-        firstTileClicked =                          null;
-        secondTileClicked =                         null;
+        firstTileClicked = null;
+        secondTileClicked = null;
     }
 
     /// <summary>
@@ -228,7 +242,7 @@ public class TileSwapHandler : MonoBehaviour
             return TileSwapType.none;
 
         // Rulebreak 2: Horizontal swaps involving air tiles
-        bool horizSwap =                            tile1.BoardPos.x != tile2.BoardPos.x;
+        bool horizSwap = tile1.BoardPos.x != tile2.BoardPos.x;
         if (horizSwap)
         {
             if (tile1.Type == AirTileType || tile2.Type == AirTileType)
@@ -236,21 +250,21 @@ public class TileSwapHandler : MonoBehaviour
         }
 
         // Rulebreak 3: Vertical swaps that involve an air tile and a non-air tile below it
-        bool vertSwap =                             tile1.BoardPos.y != tile2.BoardPos.y;
+        bool vertSwap = tile1.BoardPos.y != tile2.BoardPos.y;
         if (vertSwap)
         {
-            TileController higherTile =             null;
-            TileController lowerTile =              null;
+            TileController higherTile = null;
+            TileController lowerTile = null;
 
             if (tile1.BoardPos.y > tile2.BoardPos.y)
             {
-                higherTile =                        tile1;
-                lowerTile =                         tile2;
+                higherTile = tile1;
+                lowerTile = tile2;
             }
             else
             {
-                higherTile =                        tile2;
-                lowerTile =                         tile1;
+                higherTile = tile2;
+                lowerTile = tile1;
             }
 
             if (higherTile.Type == AirTileType)
@@ -262,14 +276,14 @@ public class TileSwapHandler : MonoBehaviour
         // a one-tile distance on one axis, and a no-tile distance on the other. 
         // Knight Swaps have a two-tile distance on one axis, and a one-tile distance on the other. 
         // L-shape and whatnot.
-        Vector2Int tileDist =                       new Vector2Int(Mathf.Abs(tile1.BoardPos.x - tile2.BoardPos.x), 
+        Vector2Int tileDist = new Vector2Int(Mathf.Abs(tile1.BoardPos.x - tile2.BoardPos.x), 
                                                     Mathf.Abs(tile1.BoardPos.y - tile2.BoardPos.y));
 
-        bool adjacentSwap =                         (tileDist.x == 1 && tileDist.y == 0) || 
+        bool adjacentSwap = (tileDist.x == 1 && tileDist.y == 0) || 
                                                     (tileDist.y == 1 && tileDist.x == 0);
-        bool knightSwap =                           (tileDist.x == 2 && tileDist.y == 1) || 
+        bool knightSwap = (tileDist.x == 2 && tileDist.y == 1) || 
                                                     (tileDist.y == 2 && tileDist.x == 1);
-        bool airTileInvolved =                      firstTileClicked.Type == AirTileType || 
+        bool airTileInvolved = firstTileClicked.Type == AirTileType || 
                                                     secondTileClicked.Type == AirTileType;
         if (adjacentSwap && airTileInvolved)
             return TileSwapType.freeAdjacent;
@@ -281,20 +295,33 @@ public class TileSwapHandler : MonoBehaviour
             return TileSwapType.none;
     }
 
-    void UpdateSwapResults(TileSwapType swapType)
+    void UpdateSwapResults(TileSwapType swapType, TileController firstTile = null, TileController secondTile = null)
     {
-        swapResults.SwapType =                      swapType;
-        List<TileController> tiles =                swapResults.TilesInvolved;
+        swapResults.SwapType = swapType;
+        List<TileController> tiles = swapResults.TilesInvolved;
         tiles.Clear();
-        tiles.Add(firstTileClicked);
-        tiles.Add(secondTileClicked);
+
+        if (firstTile == null)
+            tiles.Add(firstTileClicked);
+        else
+            tiles.Add(firstTile);
+
+        if (secondTile == null)
+            tiles.Add(secondTileClicked);
+        else 
+            tiles.Add(secondTile);
     }
 
     void AlertSwapListeners()
     {
         // Whether it's Fungus blocks or custom code.
-        AnySwapMade.Invoke(this, swapResults);
+        AnyPhysicalSwapMade.Invoke(this, swapResults);
         SwapMadeEvent.Invoke(swapResults);
+    }
+
+    void AlertNonFungusSwapListeners()
+    {
+        AnyPhysicalSwapMade.Invoke(this, swapResults);
     }
 
     #endregion
@@ -307,5 +334,4 @@ public enum TileSwapType
     adjacent, 
     knight,
     freeAdjacent,
-
 }

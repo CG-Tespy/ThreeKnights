@@ -10,7 +10,7 @@ public abstract class SimpleEvent<TEventType> : EventHandler where TEventType: E
 {
     public static void Invoke()
     {
-        System.Type eventType =                 typeof(TEventType);
+        System.Type eventType = typeof(TEventType);
         foreach (TEventType eventObj in FindObjectsOfType(eventType))
             eventObj.ExecuteBlock();
     }
@@ -21,7 +21,7 @@ where TEventType: EventHandler
 {
     public static void Invoke(TEventArgsType eventArgs)
     {
-        System.Type eventType =                 typeof(TEventType);
+        System.Type eventType = typeof(TEventType);
         foreach (TEventType eventObj in FindObjectsOfType(eventType))
             eventObj.ExecuteBlock();
     }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public abstract class SwapHandler : MonoBehaviour
 {
-    protected List<SwapRule> swapRules =      new List<SwapRule>();
+    protected List<SwapRule> swapRules = new List<SwapRule>();
     public virtual List<SwapRule> SwapRules
     {
         get { return swapRules; }

@@ -11,7 +11,7 @@ public class MatchMadeEvent : SimpleEvent<MatchMadeEvent>
     public static void Invoke(MatchArgs matchMade)
     {
         if (matchMade != null)
-            latestMatch =                   matchMade;
+            latestMatch = matchMade;
 
         foreach (MatchMadeEvent matchEvent in FindObjectsOfType<MatchMadeEvent>())
         {

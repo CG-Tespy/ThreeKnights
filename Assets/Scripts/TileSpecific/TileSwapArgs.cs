@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public class TileSwapArgs : System.EventArgs
 {
-    protected List<TileController> tilesInvolved =          new List<TileController>();
+    protected List<TileController> tilesInvolved = new List<TileController>();
     protected TileSwapType swapType;
     public List<TileController> TilesInvolved
     {

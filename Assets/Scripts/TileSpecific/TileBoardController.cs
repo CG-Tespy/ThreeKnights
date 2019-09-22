@@ -17,20 +17,22 @@ public class TileBoardController : MonoBehaviour
     [SerializeField] BoardGenerator boardGenerator;
     #region Tiles
     TileController[,] tiles;
-    List<TileController> tilesUnordered = new List<TileController>();
+    List<TileController> unorderedTiles = new List<TileController>();
 
     public TileController[,] Tiles
     {
         get                                             { return tiles; }
     }
 
-    List<List<TileController>> tileRows =               new List<List<TileController>>();
-    List<List<TileController>> tileColumns =            new List<List<TileController>>();
+    int MinAmountForMatch { get { return minAmountForMatch.Value; } }
+
+    List<List<TileController>> tileRows = new List<List<TileController>>();
+    List<List<TileController>> tileColumns = new List<List<TileController>>();
     #endregion
 
     #region For event listeners
-    MatchArgs matchesOnBoard =                          new MatchArgs();
-    TileClearArgs tileClearReport =                     new TileClearArgs();
+    MatchArgs matchesOnBoard = new MatchArgs();
+    TileClearArgs tileClearReport = new TileClearArgs();
     #endregion
     
     public int RowCount                                 { get { return tileRows.Count; } }
@@ -38,8 +40,9 @@ public class TileBoardController : MonoBehaviour
 
     void Awake()
     {
-        TileSwapHandler.AnySwapMade +=                  OnAnySwapMade;
-        minAmountForMatch =                             tileBoardVals.GetVariable("minAmountForMatch") 
+        TileSwapHandler.AnyPhysicalSwapMade += OnAnyPhysicalSwapMade;
+        TileSwapHandler.AnyBoardSwapMade += OnAnyBoardSwapMade;
+        minAmountForMatch = tileBoardVals.GetVariable("minAmountForMatch") 
                                                         as IntegerVariable;
         tiles = boardGenerator.GenerateBoard(this);
         UpdateColumnsAndRows();
@@ -47,7 +50,8 @@ public class TileBoardController : MonoBehaviour
 
     void OnDestroy()
     {
-        TileSwapHandler.AnySwapMade -=                  OnAnySwapMade;
+        TileSwapHandler.AnyPhysicalSwapMade -= OnAnyPhysicalSwapMade;
+        TileSwapHandler.AnyBoardSwapMade -= OnAnyBoardSwapMade;
     }
 
     public TileController GetTileAt(Vector2Int position)
@@ -83,18 +87,24 @@ public class TileBoardController : MonoBehaviour
         Tiles[xBoardPos, yBoardPos] = tile;
     }
 
-    void OnAnySwapMade(TileSwapHandler swapHandler, TileSwapArgs swapArgs)
+    void OnAnyPhysicalSwapMade(TileSwapHandler swapHandler, TileSwapArgs swapArgs)
+    {
+        if (swapArgs.SwapType != TileSwapType.freeAdjacent)
+        {
+            UpdateMatchesOnBoard();
+            ConvertMatchedTilesToAirTiles();
+
+            // With the matched tiles now aired up, their matches don't count
+            // anymore.
+            matchesOnBoard.TilesMatched.Clear();
+        }
+    }
+
+    void OnAnyBoardSwapMade(TileSwapHandler swapHandler, TileSwapArgs swapArgs)
     {
         UpdateTileGridOnSwap(swapArgs.TilesInvolved);
-        UpdateTilesUnordered();
+        UpdateUnorderedTiles();
         UpdateColumnsAndRows();
-        UpdateMatchesOnBoard();
-
-        ConvertMatchedTilesToAirTiles();
-
-        // With the matched tiles now aired up, their matches don't count
-        // anymore.
-        matchesOnBoard.TilesMatched.Clear();
     }
 
     void UpdateTileGridOnSwap(List<TileController> tilesSwapped)
@@ -109,16 +119,16 @@ public class TileBoardController : MonoBehaviour
             SetTileAt(secondTile, secondTile.BoardPos);
     }
 
-    void UpdateTilesUnordered()
+    void UpdateUnorderedTiles()
     {
-        tilesUnordered.Clear();
+        unorderedTiles.Clear();
 
         for (int x = 0; x < boardGenerator.numOfColumns; x++)
         {
             for (int y = 0; y < boardGenerator.numOfRows; y++)
             {
                 TileController tile = Tiles[x, y];
-                tilesUnordered.Add(tile);
+                unorderedTiles.Add(tile);
             }
         }
     }
@@ -130,7 +140,7 @@ public class TileBoardController : MonoBehaviour
     /// </summary>
     void UpdateMatchesOnBoard()
     {
-        List<TileController> tilesMatched =         matchesOnBoard.TilesMatched;
+        List<TileController> tilesMatched = matchesOnBoard.TilesMatched;
 
         for (int i = 0; i < tileRows.Count; i++)
         {
@@ -158,21 +168,22 @@ public class TileBoardController : MonoBehaviour
 
         for (int x = 0; x < boardGenerator.numOfColumns; x++)
         {
-            column = (from tile in tilesUnordered
+            column = (from tile in unorderedTiles
                     where tile.BoardPos.x == x
+                    orderby x
                     select tile).ToList();
             tileColumns.Add(column);
         }
 
         for (int y = 0; y < boardGenerator.numOfRows; y++)
         {
-            row = (from tile in tilesUnordered
+            row = (from tile in unorderedTiles
             where tile.BoardPos.y == y
+            orderby y
             select tile).ToList();
 
             tileRows.Add(row);
         }
-        
     }
 
     void ConvertMatchedTilesToAirTiles()
@@ -184,33 +195,33 @@ public class TileBoardController : MonoBehaviour
             if (tile.Type == airTileType) // Avoid counting the same tile twice, in case of a T-match or somesuch
                 continue;
 
-            tileClearReport.TileCleared =           tile;
-            tileClearReport.OriginalTileType =      tile.Type;
-            tile.Type =                             airTileType;
+            tileClearReport.TileCleared = tile;
+            tileClearReport.OriginalTileType = tile.Type;
+            tile.Type = airTileType;
             TileClearedEvent.Invoke(tileClearReport);
         }
     }
 
     List<TileController> MatchedTilesInList(List<TileController> toCheck)
     {
-        List<TileController> matchedTiles =         new List<TileController>();
-        List<TileController> tileChain =            new List<TileController>();
-        bool enoughForMatch =                       false;
+        List<TileController> matchedTiles = new List<TileController>();
+        List<TileController> tileChain = new List<TileController>();
+        bool enoughForMatch = false;
 
         for (int i = 0; i < toCheck.Count; i++)
         {
-            TileController tile =                   toCheck[i];
-            TileController previousTile =           null;
+            TileController tile = toCheck[i];
+            TileController previousTile = null;
 
-            bool thereIsPreviousTile =              i > 0;
+            bool thereIsPreviousTile = i > 0;
 
             if (thereIsPreviousTile)
             {
-                previousTile =                      toCheck[i - 1];
+                previousTile = toCheck[i - 1];
 
                 // Air tiles don't count in matches.
-                bool bothTilesChain =               tile.Type != airTileType && tile.Type == previousTile.Type;
-                enoughForMatch =                    tileChain.Count >= minAmountForMatch.Value;
+                bool bothTilesChain = tile.Type != airTileType && tile.Type == previousTile.Type;
+                enoughForMatch = tileChain.Count >= MinAmountForMatch;
 
                 if (bothTilesChain)
                 {
