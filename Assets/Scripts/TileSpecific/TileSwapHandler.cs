@@ -1,10 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using Fungus;
-using System.Threading.Tasks;
 
 using SysTask = System.Threading.Tasks.Task;
 
@@ -27,7 +24,7 @@ public class TileSwapHandler : MonoBehaviour
     #endregion
 
     TileBoardController tileBoard;
-    TileController firstTileClicked, secondTileClicked;
+    protected TileController firstTileClicked, secondTileClicked;
     TileSwapArgs swapResults = new TileSwapArgs();
     public static UnityAction<TileSwapHandler, TileSwapArgs> AnyPhysicalSwapMade = delegate {};
     public static UnityAction<TileSwapHandler, TileSwapArgs> AnyBoardSwapMade = delegate {};
@@ -82,6 +79,12 @@ public class TileSwapHandler : MonoBehaviour
         
         RegisterTile(tile);
 
+        if (ShouldReset())
+        {
+            this.Reset();
+            return;
+        }
+
         if (TwoTilesClicked()) // Consider swapping the tiles.
         {
             ConsiderSwappingTiles();
@@ -105,6 +108,25 @@ public class TileSwapHandler : MonoBehaviour
     bool TileNotOnGameBoard(TileController tile)
     {
         return tile.Board != this.gameBoard;
+    }
+
+    protected virtual bool ShouldReset()
+    {
+        return FirstTileClickedIsAir();
+    }
+
+    bool FirstTileClickedIsAir()
+    {
+        return firstTileClicked != null && firstTileClicked.Type == AirTileType;
+    }
+    bool OnlyOneTileClicked()
+    {
+        return firstTileClicked != null && secondTileClicked == null;
+    }
+
+    bool IsAirTile(TileController tile)
+    {
+        return tile.Type == AirTileType;
     }
 
     protected bool TwoTilesClicked()
@@ -137,7 +159,10 @@ public class TileSwapHandler : MonoBehaviour
                 break;
             case TileSwapType.freeAdjacent:
                 await AdjacentSwapTask(firstTile, secondTile);
-                break; 
+                break;
+            case TileSwapType.gravityControl:
+                await AdjacentSwapTask(firstTile, secondTile);
+                break;
             case TileSwapType.knight:
                 await KnightSwapTask(firstTile, secondTile);
                 break;
@@ -148,7 +173,7 @@ public class TileSwapHandler : MonoBehaviour
 
         UpdateSwapResults(swapType);
         UnregisterTiles();
-        AlertSwapListeners();
+        AlertSwapListeners(swapType);
         SwapEnabled = true;
     }
 
@@ -286,7 +311,7 @@ public class TileSwapHandler : MonoBehaviour
         bool airTileInvolved = firstTileClicked.Type == AirTileType || 
                                                     secondTileClicked.Type == AirTileType;
         if (adjacentSwap && airTileInvolved)
-            return TileSwapType.freeAdjacent;
+            return TileSwapType.gravityControl;
         else if (adjacentSwap)
             return TileSwapType.adjacent;
         else if (knightSwap)
@@ -312,11 +337,14 @@ public class TileSwapHandler : MonoBehaviour
             tiles.Add(secondTile);
     }
 
-    void AlertSwapListeners()
+    void AlertSwapListeners(TileSwapType swapType)
     {
         // Whether it's Fungus blocks or custom code.
         AnyPhysicalSwapMade.Invoke(this, swapResults);
-        SwapMadeEvent.Invoke(swapResults);
+
+        if (swapType != TileSwapType.freeAdjacent && 
+            swapType != TileSwapType.gravityControl) // Don't let the Fungus system count this as a swap
+            SwapMadeEvent.Invoke(swapResults);
     }
 
     void AlertNonFungusSwapListeners()
@@ -334,4 +362,5 @@ public enum TileSwapType
     adjacent, 
     knight,
     freeAdjacent,
+    gravityControl
 }
