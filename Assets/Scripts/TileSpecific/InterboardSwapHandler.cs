@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Threading.Tasks;
 
@@ -69,6 +67,6 @@ public class InterboardSwapHandler : TileSwapHandler
         if (baseShouldReset == true)
             return true;
         
-        return !NeitherTileIsAir(firstTileClicked, secondTileClicked);
+        return TwoTilesClicked() && !NeitherTileIsAir(firstTileClicked, secondTileClicked);
     }
 }
